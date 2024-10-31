@@ -9,11 +9,15 @@ import React, {
 } from "react";
 import { useMap3DCameraEvents } from "./use-map-3d-camera-events";
 import { useCallbackRef, useDeepCompareEffect } from "../utility-hooks";
-
 import "./map-3d-types";
+import {
+  Map3DClickEvent,
+  useMap3DClickEvents,
+} from "./use-map-3d-click-events";
 
 export type Map3DProps = google.maps.maps3d.Map3DElementOptions & {
   onCameraChange?: (cameraProps: Map3DCameraProps) => void;
+  onClick?: (event: Map3DClickEvent) => void; // Add click handler prop
 };
 
 export type Map3DCameraProps = {
@@ -36,11 +40,13 @@ export const Map3D = forwardRef(
 
     useMap3DCameraEvents(map3DElement, (p) => {
       if (!props.onCameraChange) return;
-
       props.onCameraChange(p);
     });
 
+    useMap3DClickEvents(map3DElement, props.onClick);
+
     const [customElementsReady, setCustomElementsReady] = useState(false);
+
     useEffect(() => {
       customElements.whenDefined("gmp-map-3d").then(() => {
         setCustomElementsReady(true);

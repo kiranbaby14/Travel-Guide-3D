@@ -45,14 +45,14 @@ export const MiniMap = ({ camera3dProps, onMapClick }: MiniMapProps) => {
     <Map
       id={"minimap"}
       className={"minimap"}
-      mapId={"bf51a910020fa25a"}
+      mapId={process.env.NEXT_PUBLIC_MAP_ID}
       defaultCenter={camera3dProps.center}
       defaultZoom={10}
       onClick={onMapClick}
       disableDefaultUI
       clickableIcons={false}
     >
-      <ViewCenterMarker position={camera3dProps.center}></ViewCenterMarker>
+      {/* <ViewCenterMarker position={camera3dProps.center}></ViewCenterMarker> */}
       <CameraPositionMarker
         position={cameraPosition}
         heading={camera3dProps.heading}
