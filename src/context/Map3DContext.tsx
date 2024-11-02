@@ -1,15 +1,27 @@
 import React, { createContext, useContext, ReactNode } from "react";
 
-interface Map3DContextValue {
+interface IMap3DContext {
   map3DElement: google.maps.maps3d.Map3DElement | null;
   maps3d: any | null;
+  flyCameraTo?: (options: {
+    endCamera: {
+      center: google.maps.LatLngAltitudeLiteral;
+      tilt: number;
+      range: number;
+    };
+    durationMillis?: number;
+  }) => void;
 }
 
-const Map3DContext = createContext<Map3DContextValue | null>(null);
+const Map3DContext = createContext<IMap3DContext | null>({
+  map3DElement: null,
+  maps3d: null,
+  flyCameraTo: () => {},
+});
 
 interface Map3DProviderProps {
   children: ReactNode;
-  value: Map3DContextValue;
+  value: IMap3DContext;
 }
 
 const Map3DProvider: React.FC<Map3DProviderProps> = ({ children, value }) => {
@@ -26,5 +38,5 @@ const useMap3D = () => {
   return context;
 };
 
-export type { Map3DContextValue };
+export type { IMap3DContext };
 export { useMap3D, Map3DProvider };

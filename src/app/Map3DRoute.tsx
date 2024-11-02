@@ -5,6 +5,7 @@ import { MiniMap } from "./minimap";
 import { Map3D, Map3DCameraProps, Marker3D } from "./map-3d";
 import "./style.css";
 import { Map3DClickEvent } from "./map-3d/hooks/use-map-3d-click-events";
+import { useMap3D } from "@/context/Map3DContext";
 
 const API_KEY =
   globalThis.GOOGLE_MAPS_API_KEY ??
@@ -16,6 +17,33 @@ const INITIAL_VIEW_PROPS = {
   heading: 61,
   tilt: 69,
   roll: 0,
+};
+// Separate the part that needs context
+const MapControls = () => {
+  const { flyCameraTo } = useMap3D();
+
+  const handleFlyToSFO = () => {
+    console.log("Attempting to fly"); // Debug log
+    console.log(flyCameraTo);
+
+    flyCameraTo({
+      endCamera: {
+        center: { lat: 40.7079, lng: -74.0132, altitude: 1300 },
+        tilt: 67.5,
+        range: 1000,
+      },
+      durationMillis: 5000,
+    });
+  };
+
+  return (
+    <button
+      className="absolute top-4 left-4 bg-white px-4 py-2 rounded shadow"
+      onClick={handleFlyToSFO}
+    >
+      Fly to Location
+    </button>
+  );
 };
 
 const Map3DExample = () => {
@@ -47,21 +75,19 @@ const Map3DExample = () => {
 
   return (
     <div className="relative w-full h-full">
-      <div className="absolute inset-0">
-        <Map3D
-          {...viewProps}
-          onCameraChange={handleCameraChange}
-          onClick={handleMap3DClick}
-          defaultLabelsDisabled
-        >
-          <Marker3D
-            position={{ lat: 40.7079, lng: -74.0132 }}
-            title="Paris"
-            onClick={handleMarkerClick}
-          />
-        </Map3D>
-      </div>
-      <button className="absolute bg-red-50">Click me</button>
+      <Map3D
+        {...viewProps}
+        onCameraChange={handleCameraChange}
+        onClick={handleMap3DClick}
+        defaultLabelsDisabled
+      >
+        <Marker3D
+          position={{ lat: 40.7079, lng: -74.0132 }}
+          title="Paris"
+          onClick={handleMarkerClick}
+        />
+      </Map3D>
+      <MapControls />
       <MiniMap camera3dProps={viewProps} onMapClick={handleMapClick}></MiniMap>
     </div>
   );
