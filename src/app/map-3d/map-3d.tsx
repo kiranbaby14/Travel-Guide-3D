@@ -4,20 +4,21 @@ import React, {
   forwardRef,
   useEffect,
   useImperativeHandle,
-  useMemo,
   useState,
 } from "react";
-import { useMap3DCameraEvents } from "./use-map-3d-camera-events";
+import { useMap3DCameraEvents } from "./hooks/use-map-3d-camera-events";
 import { useCallbackRef, useDeepCompareEffect } from "../utility-hooks";
-import "./map-3d-types";
+import "./types/map-3d-types";
 import {
   Map3DClickEvent,
   useMap3DClickEvents,
-} from "./use-map-3d-click-events";
+} from "./hooks/use-map-3d-click-events";
+import { Map3DProvider } from "@/context/Map3DContext";
 
 export type Map3DProps = google.maps.maps3d.Map3DElementOptions & {
   onCameraChange?: (cameraProps: Map3DCameraProps) => void;
   onClick?: (event: Map3DClickEvent) => void; // Add click handler prop
+  children?: React.ReactNode;
 };
 
 export type Map3DCameraProps = {
@@ -33,7 +34,7 @@ export const Map3D = forwardRef(
     props: Map3DProps,
     forwardedRef: ForwardedRef<google.maps.maps3d.Map3DElement | null>,
   ) => {
-    useMapsLibrary("maps3d");
+    const maps3d = useMapsLibrary("maps3d");
 
     const [map3DElement, map3dRef] =
       useCallbackRef<google.maps.maps3d.Map3DElement>();
@@ -53,11 +54,11 @@ export const Map3D = forwardRef(
       });
     }, []);
 
-    const { center, heading, tilt, range, roll, ...map3dOptions } = props;
+    const { center, heading, tilt, range, roll, children, ...map3dOptions } =
+      props;
 
     useDeepCompareEffect(() => {
       if (!map3DElement) return;
-
       // copy all values from map3dOptions to the map3D element itself
       Object.assign(map3DElement, map3dOptions);
     }, [map3DElement, map3dOptions]);
@@ -70,14 +71,18 @@ export const Map3D = forwardRef(
     if (!customElementsReady) return null;
 
     return (
-      <gmp-map-3d
-        ref={map3dRef}
-        center={center as object}
-        range={props.range as number}
-        heading={props.heading as number}
-        tilt={props.tilt as number}
-        roll={props.roll as number}
-      ></gmp-map-3d>
+      <Map3DProvider value={{ map3DElement, maps3d }}>
+        <gmp-map-3d
+          ref={map3dRef}
+          center={center as object}
+          range={props.range as number}
+          heading={props.heading as number}
+          tilt={props.tilt as number}
+          roll={props.roll as number}
+        >
+          {children}
+        </gmp-map-3d>
+      </Map3DProvider>
     );
   },
 );
