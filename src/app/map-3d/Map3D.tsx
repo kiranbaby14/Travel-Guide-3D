@@ -5,13 +5,13 @@ import React, {
   useImperativeHandle,
   useState,
 } from "react";
-import { useMap3DCameraEvents } from "./hooks/use-map-3d-camera-events";
-import { useDeepCompareEffect } from "../hooks/utility-hooks";
-import "./types/map-3d-types";
+import { useMap3DCameraEvents } from "./hooks/useMap3DCameraEvents";
+import { useDeepCompareEffect } from "../hooks/utilityHooks";
+import "./types/map3dTypes";
 import {
   Map3DClickEvent,
   useMap3DClickEvents,
-} from "./hooks/use-map-3d-click-events";
+} from "./hooks/useMap3DClickEvents";
 import { useMap3D } from "@/context/Map3DContext";
 
 export type Map3DCameraProps = {

@@ -1,7 +1,7 @@
 import React from "react";
 import { AdvancedMarker } from "@vis.gl/react-google-maps";
 
-import "./view-center-marker.css";
+import "./viewCenterMarker.css";
 
 type ViewCenterMarkerProps = { position: google.maps.LatLngAltitudeLiteral };
 export const ViewCenterMarker = ({ position }: ViewCenterMarkerProps) => (

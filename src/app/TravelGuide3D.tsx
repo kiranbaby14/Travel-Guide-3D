@@ -10,7 +10,7 @@ import {
   Polygon3D,
   Polyline3D,
 } from "./map-3d";
-import { Map3DClickEvent } from "./map-3d/hooks/use-map-3d-click-events";
+import { Map3DClickEvent } from "./map-3d/hooks/useMap3DClickEvents";
 import { Map3DProvider } from "@/context/Map3DContext";
 
 const API_KEY =

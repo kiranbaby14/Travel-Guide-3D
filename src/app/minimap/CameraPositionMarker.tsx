@@ -1,7 +1,7 @@
 import React from "react";
 import { AdvancedMarker } from "@vis.gl/react-google-maps";
 
-import "./camera-position-marker.css";
+import "./cameraPositionMarker.css";
 
 type CameraPositionMarkerProps = {
   position: google.maps.LatLngAltitudeLiteral;

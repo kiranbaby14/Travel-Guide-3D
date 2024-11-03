@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
 import { Map, MapMouseEvent, useMap } from "@vis.gl/react-google-maps";
 
-import { useDebouncedEffect } from "../hooks/utility-hooks";
-import { estimateCameraPosition } from "./estimate-camera-position";
+import { useDebouncedEffect } from "../hooks/utilityHooks";
+import { estimateCameraPosition } from "./estimateCameraPosition";
 import { CameraPositionMarker } from "./CameraPositionMarker";
 import { ViewCenterMarker } from "./ViewCenterMarker";
 
