@@ -1,1 +1,3 @@
-export * from "./marker-3d";
+export * from "./Marker3D";
+export * from "./Polygon3D";
+export * from "./MapControls";

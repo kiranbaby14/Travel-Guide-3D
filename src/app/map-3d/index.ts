@@ -1,2 +1,2 @@
-export * from "./map-3d";
-export { Marker3D } from "./components/marker-3d";
+export * from "./Map3D";
+export * from "./components";

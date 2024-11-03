@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Map3DCameraProps } from "./map-3d";
+import { Map3DCameraProps } from "../Map3D";
 
 const cameraPropNames = ["center", "range", "heading", "tilt", "roll"] as const;
 

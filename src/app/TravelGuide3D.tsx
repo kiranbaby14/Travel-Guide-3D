@@ -1,8 +1,14 @@
 "use client";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { APIProvider, MapMouseEvent } from "@vis.gl/react-google-maps";
 import { MiniMap } from "./minimap";
-import { Map3D, Map3DCameraProps, Marker3D } from "./map-3d";
+import {
+  Map3D,
+  Map3DCameraProps,
+  MapControls,
+  Marker3D,
+  Polygon3D,
+} from "./map-3d";
 import { Map3DClickEvent } from "./map-3d/hooks/use-map-3d-click-events";
 import { Map3DProvider, useMap3D } from "@/context/Map3DContext";
 
@@ -16,30 +22,6 @@ const INITIAL_VIEW_PROPS = {
   heading: 61,
   tilt: 69,
   roll: 0,
-};
-// Separate the part that needs context
-const MapControls = () => {
-  const { flyCameraTo } = useMap3D();
-
-  const handleFlyToSFO = useCallback(() => {
-    flyCameraTo({
-      endCamera: {
-        center: { lat: 40.7079, lng: -74.0132, altitude: 1300 },
-        tilt: 67.5,
-        range: 1000,
-      },
-      durationMillis: 5000,
-    });
-  }, [flyCameraTo]);
-
-  return (
-    <button
-      className="absolute top-4 left-4 bg-white px-4 py-2 rounded shadow"
-      onClick={handleFlyToSFO}
-    >
-      Fly to Location
-    </button>
-  );
 };
 
 const Map3DExample = () => {
@@ -63,6 +45,42 @@ const Map3DExample = () => {
     console.log("Map clicked:", event.position, event.placeId);
   }, []);
 
+  const handlePolygonClick = useCallback(() => {
+    console.log("Polygon clicked!");
+  }, []);
+
+  // Memoize the marker component
+  const memoizedMarker = useMemo(
+    () => (
+      <Marker3D
+        position={{ lat: 40.7079, lng: -74.0132 }}
+        title="Paris"
+        onClick={handleMarkerClick}
+      />
+    ),
+    [],
+  ); // Empty dependency array since position and handlers don't change
+
+  // Memoize the polygon component
+  const memoizedPolygon = useMemo(
+    () => (
+      <Polygon3D
+        outerCoordinates={[
+          { lat: 40.7144, lng: -74.0208, altitude: 1000 },
+          { lat: 40.6993, lng: -74.019, altitude: 1000 },
+          { lat: 40.7035, lng: -74.0004, altitude: 1000 },
+          { lat: 40.7144, lng: -74.0208, altitude: 1000 },
+        ]}
+        fillColor="rgba(255, 0, 0, 0.5)"
+        strokeColor="#0000ff"
+        strokeWidth={8}
+        extruded={true}
+        onClick={handlePolygonClick}
+      />
+    ),
+    [],
+  );
+
   return (
     <div className="relative w-full h-full">
       <Map3D
@@ -71,11 +89,8 @@ const Map3DExample = () => {
         onClick={handleMap3DClick}
         defaultLabelsDisabled
       >
-        <Marker3D
-          position={{ lat: 40.7079, lng: -74.0132 }}
-          title="Paris"
-          onClick={handleMarkerClick}
-        />
+        {memoizedMarker}
+        {memoizedPolygon}
       </Map3D>
       <MapControls />
       <MiniMap camera3dProps={viewProps} onMapClick={handleMapClick}></MiniMap>
