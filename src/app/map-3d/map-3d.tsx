@@ -14,22 +14,7 @@ import {
   Map3DClickEvent,
   useMap3DClickEvents,
 } from "./hooks/use-map-3d-click-events";
-import { Map3DProvider } from "@/context/Map3DContext";
-
-interface IFlyCameraOptions {
-  endCamera: {
-    center: google.maps.LatLngLiteral;
-    tilt: number;
-    range: number;
-  };
-  durationMillis?: number;
-}
-
-export type Map3DProps = google.maps.maps3d.Map3DElementOptions & {
-  onCameraChange?: (cameraProps: Map3DCameraProps) => void;
-  onClick?: (event: Map3DClickEvent) => void; // Add click handler prop
-  children?: React.ReactNode;
-};
+import { Map3DProvider, useMap3D } from "@/context/Map3DContext";
 
 export type Map3DCameraProps = {
   center: google.maps.LatLngAltitudeLiteral;
@@ -39,46 +24,31 @@ export type Map3DCameraProps = {
   roll: number;
 };
 
+export type Map3DProps = google.maps.maps3d.Map3DElementOptions & {
+  onCameraChange?: (cameraProps: Map3DCameraProps) => void;
+  onClick?: (event: Map3DClickEvent) => void; // Add click handler prop
+  children?: React.ReactNode;
+};
+
 export const Map3D = forwardRef(
   (
     props: Map3DProps,
     forwardedRef: ForwardedRef<google.maps.maps3d.Map3DElement | null>,
   ) => {
-    const maps3d = useMapsLibrary("maps3d");
-
-    const [map3DElement, map3dRef] =
-      useCallbackRef<google.maps.maps3d.Map3DElement>();
+    const { map3DElement, map3dRef } = useMap3D();
+    const [customElementsReady, setCustomElementsReady] = useState(false);
 
     useMap3DCameraEvents(map3DElement, (p) => {
       if (!props.onCameraChange) return;
       props.onCameraChange(p);
     });
-
     useMap3DClickEvents(map3DElement, props.onClick);
-
-    const [customElementsReady, setCustomElementsReady] = useState(false);
 
     useEffect(() => {
       customElements.whenDefined("gmp-map-3d").then(() => {
         setCustomElementsReady(true);
       });
     }, []);
-
-    const flyCameraTo = useCallback(
-      (options: IFlyCameraOptions) => {
-        console.log("fj");
-
-        if (!map3DElement) return;
-
-        map3DElement.flyCameraTo({
-          endCamera: {
-            ...options.endCamera,
-          },
-          durationMillis: options.durationMillis || 5000,
-        });
-      },
-      [map3DElement],
-    );
 
     const { center, heading, tilt, range, roll, children, ...map3dOptions } =
       props;
@@ -97,18 +67,16 @@ export const Map3D = forwardRef(
     if (!customElementsReady) return null;
 
     return (
-      <Map3DProvider value={{ map3DElement, maps3d, flyCameraTo }}>
-        <gmp-map-3d
-          ref={map3dRef}
-          center={center as object}
-          range={props.range as number}
-          heading={props.heading as number}
-          tilt={props.tilt as number}
-          roll={props.roll as number}
-        >
-          {children}
-        </gmp-map-3d>
-      </Map3DProvider>
+      <gmp-map-3d
+        ref={map3dRef}
+        center={center as object}
+        range={props.range as number}
+        heading={props.heading as number}
+        tilt={props.tilt as number}
+        roll={props.roll as number}
+      >
+        {children}
+      </gmp-map-3d>
     );
   },
 );

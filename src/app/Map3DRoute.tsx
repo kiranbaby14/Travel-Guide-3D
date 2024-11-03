@@ -5,7 +5,7 @@ import { MiniMap } from "./minimap";
 import { Map3D, Map3DCameraProps, Marker3D } from "./map-3d";
 import "./style.css";
 import { Map3DClickEvent } from "./map-3d/hooks/use-map-3d-click-events";
-import { useMap3D } from "@/context/Map3DContext";
+import { Map3DProvider, useMap3D } from "@/context/Map3DContext";
 
 const API_KEY =
   globalThis.GOOGLE_MAPS_API_KEY ??
@@ -107,9 +107,11 @@ const Map3DRoute = () => {
 
   return (
     <APIProvider apiKey={API_KEY} version={"alpha"}>
-      <div className="w-screen h-screen">
-        <Map3DExample />
-      </div>
+      <Map3DProvider>
+        <div className="w-screen h-screen">
+          <Map3DExample />
+        </div>
+      </Map3DProvider>
     </APIProvider>
   );
 };
