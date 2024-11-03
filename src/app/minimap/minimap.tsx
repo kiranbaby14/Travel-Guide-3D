@@ -3,8 +3,8 @@ import { Map, MapMouseEvent, useMap } from "@vis.gl/react-google-maps";
 
 import { useDebouncedEffect } from "../hooks/utility-hooks";
 import { estimateCameraPosition } from "./estimate-camera-position";
-import { CameraPositionMarker } from "./camera-position-marker";
-import { ViewCenterMarker } from "./view-center-marker";
+import { CameraPositionMarker } from "./CameraPositionMarker";
+import { ViewCenterMarker } from "./ViewCenterMarker";
 
 import type { Map3DCameraProps } from "../map-3d";
 

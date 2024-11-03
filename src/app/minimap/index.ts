@@ -1,1 +1,1 @@
-export * from "./minimap";
+export * from "./MiniMap";

@@ -8,9 +8,10 @@ import {
   MapControls,
   Marker3D,
   Polygon3D,
+  Polyline3D,
 } from "./map-3d";
 import { Map3DClickEvent } from "./map-3d/hooks/use-map-3d-click-events";
-import { Map3DProvider, useMap3D } from "@/context/Map3DContext";
+import { Map3DProvider } from "@/context/Map3DContext";
 
 const API_KEY =
   globalThis.GOOGLE_MAPS_API_KEY ??
@@ -43,13 +44,19 @@ const Map3DExample = () => {
 
   const handleMap3DClick = useCallback(async (event: Map3DClickEvent) => {
     console.log("Map clicked:", event.position, event.placeId);
+    if (event.placeId) {
+      const place = await event.fetchPlace();
+      await place.fetchFields({ fields: ["*"] });
+      // Display place details or do something else.
+      console.log(place);
+    }
   }, []);
 
   const handlePolygonClick = useCallback(() => {
     console.log("Polygon clicked!");
   }, []);
 
-  // Memoize the marker component
+  // Memoize the components
   const memoizedMarker = useMemo(
     () => (
       <Marker3D
@@ -59,9 +66,8 @@ const Map3DExample = () => {
       />
     ),
     [],
-  ); // Empty dependency array since position and handlers don't change
+  );
 
-  // Memoize the polygon component
   const memoizedPolygon = useMemo(
     () => (
       <Polygon3D
@@ -81,16 +87,46 @@ const Map3DExample = () => {
     [],
   );
 
+  const memoizedPolyline = useMemo(
+    () => (
+      <Polyline3D
+        coordinates={[
+          // Financial District loop
+          { lat: 40.7144, lng: -74.0208 }, // One World Trade Center area
+          { lat: 40.7075, lng: -74.0021 }, // Near Brooklyn Bridge
+          { lat: 40.7033, lng: -74.0123 }, // Battery Park area
+          { lat: 40.7127, lng: -74.0134 }, // TriBeCa
+
+          // Midpoint landmarks
+          { lat: 40.7196, lng: -74.0066 }, // SoHo
+          { lat: 40.7233, lng: -73.9989 }, // Greenwich Village
+
+          // Lower East Side loop
+          { lat: 40.7169, lng: -73.9873 }, // Lower East Side
+          { lat: 40.7112, lng: -73.9939 }, // Chinatown
+          { lat: 40.7135, lng: -74.0021 }, // Little Italy
+          { lat: 40.7144, lng: -74.0208 }, // Back to start
+        ]}
+        strokeColor="rgba(25, 102, 210, 0.75)"
+        strokeWidth={10}
+        altitudeMode="RELATIVE_TO_GROUND"
+        onClick={() => console.log("Polyline clicked!")}
+      />
+    ),
+    [],
+  );
+
   return (
     <div className="relative w-full h-full">
       <Map3D
         {...viewProps}
         onCameraChange={handleCameraChange}
         onClick={handleMap3DClick}
-        defaultLabelsDisabled
+        // defaultLabelsDisabled
       >
         {memoizedMarker}
-        {memoizedPolygon}
+        {/* {memoizedPolygon} */}
+        {memoizedPolyline}
       </Map3D>
       <MapControls />
       <MiniMap camera3dProps={viewProps} onMapClick={handleMapClick}></MiniMap>
