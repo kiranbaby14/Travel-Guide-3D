@@ -1,9 +1,8 @@
 "use client";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { APIProvider, MapMouseEvent } from "@vis.gl/react-google-maps";
 import { MiniMap } from "./minimap";
 import { Map3D, Map3DCameraProps, Marker3D } from "./map-3d";
-import "./style.css";
 import { Map3DClickEvent } from "./map-3d/hooks/use-map-3d-click-events";
 import { Map3DProvider, useMap3D } from "@/context/Map3DContext";
 
@@ -22,10 +21,7 @@ const INITIAL_VIEW_PROPS = {
 const MapControls = () => {
   const { flyCameraTo } = useMap3D();
 
-  const handleFlyToSFO = () => {
-    console.log("Attempting to fly"); // Debug log
-    console.log(flyCameraTo);
-
+  const handleFlyToSFO = useCallback(() => {
     flyCameraTo({
       endCamera: {
         center: { lat: 40.7079, lng: -74.0132, altitude: 1300 },
@@ -34,7 +30,7 @@ const MapControls = () => {
       },
       durationMillis: 5000,
     });
-  };
+  }, [flyCameraTo]);
 
   return (
     <button
@@ -59,18 +55,12 @@ const Map3DExample = () => {
     setViewProps((p) => ({ ...p, center: { lat, lng, altitude: 0 } }));
   }, []);
 
-  const handleMarkerClick = () => {
-    console.log("Marker clicked!"); // This should now work
-  };
+  const handleMarkerClick = useCallback(() => {
+    console.log("Marker clicked!");
+  }, []);
 
   const handleMap3DClick = useCallback(async (event: Map3DClickEvent) => {
     console.log("Map clicked:", event.position, event.placeId);
-    // Do something with the click event
-    // if (event.placeId) {
-    //   const place = await event.fetchPlace();
-    //   await place.fetchFields({ fields: ["*"] });
-    //   // Display place details or do something else.
-    // }
   }, []);
 
   return (
@@ -93,7 +83,7 @@ const Map3DExample = () => {
   );
 };
 
-const Map3DRoute = () => {
+const TravelGuide3D = () => {
   const nonAlphaVersionLoaded = Boolean(
     globalThis &&
       globalThis.google?.maps?.version &&
@@ -115,4 +105,4 @@ const Map3DRoute = () => {
     </APIProvider>
   );
 };
-export default Map3DRoute;
+export default TravelGuide3D;

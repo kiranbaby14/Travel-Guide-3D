@@ -1,4 +1,4 @@
-import { useCallbackRef } from "@/app/utility-hooks";
+import { useCallbackRef } from "@/app/hooks/utility-hooks";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import React, {
   createContext,
@@ -10,7 +10,7 @@ import React, {
 
 type TFlyCameraOptions = {
   endCamera: {
-    center: google.maps.LatLngLiteral;
+    center: google.maps.LatLngAltitudeLiteral;
     tilt: number;
     range: number;
   };

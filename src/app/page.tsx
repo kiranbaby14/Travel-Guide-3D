@@ -1,5 +1,5 @@
-import Map3DRoute from "./Map3DRoute";
+import TravelGuide3D from "./TravelGuide3D";
 
 export default function Home() {
-  return <Map3DRoute />;
+  return <TravelGuide3D />;
 }

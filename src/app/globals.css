@@ -19,3 +19,13 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@layer components {
+  [class$="alpha-banner"] {
+    @apply right-auto left-1/2 -translate-x-1/2 top-auto bottom-6 max-w-[600px] text-sm rounded-[10px];
+  }
+
+  .minimap {
+    @apply absolute bottom-6 left-6 w-1/2 max-w-[320px] aspect-square rounded-[10px] overflow-hidden shadow-[5px_2px_20px_rgba(0,0,0,0.6)];
+  }
+}

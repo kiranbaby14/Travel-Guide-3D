@@ -1,20 +1,18 @@
-import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import React, {
   ForwardedRef,
   forwardRef,
-  useCallback,
   useEffect,
   useImperativeHandle,
   useState,
 } from "react";
 import { useMap3DCameraEvents } from "./hooks/use-map-3d-camera-events";
-import { useCallbackRef, useDeepCompareEffect } from "../utility-hooks";
+import { useDeepCompareEffect } from "../hooks/utility-hooks";
 import "./types/map-3d-types";
 import {
   Map3DClickEvent,
   useMap3DClickEvents,
 } from "./hooks/use-map-3d-click-events";
-import { Map3DProvider, useMap3D } from "@/context/Map3DContext";
+import { useMap3D } from "@/context/Map3DContext";
 
 export type Map3DCameraProps = {
   center: google.maps.LatLngAltitudeLiteral;
