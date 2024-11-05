@@ -5,12 +5,11 @@ import { MiniMap } from "./minimap";
 import {
   Map3D,
   Map3DCameraProps,
+  Map3DClickEvent,
   MapControls,
-  Marker3D,
-  Polygon3D,
-  Polyline3D,
+  RouteWithMarkers,
+  useRouteSelection,
 } from "./map-3d";
-import { Map3DClickEvent } from "./map-3d/hooks/useMap3DClickEvents";
 import { Map3DProvider } from "@/context/Map3DContext";
 
 const API_KEY =
@@ -27,6 +26,19 @@ const INITIAL_VIEW_PROPS = {
 
 const Map3DExample = () => {
   const [viewProps, setViewProps] = useState(INITIAL_VIEW_PROPS);
+  const { selectedRoute, createCustomRoute } = useRouteSelection({
+    onRouteSelect: (route) => {
+      // Optionally update camera to focus on route
+      const midpoint = {
+        lat: route.destination.lat,
+        lng: route.destination.lng,
+      };
+      setViewProps((prev) => ({
+        ...prev,
+        center: { ...midpoint, altitude: prev.center.altitude },
+      }));
+    },
+  });
 
   const handleCameraChange = useCallback((props: Map3DCameraProps) => {
     setViewProps((oldProps) => ({ ...oldProps, ...props }));
@@ -36,10 +48,6 @@ const Map3DExample = () => {
     if (!ev.detail.latLng) return;
     const { lat, lng } = ev.detail.latLng;
     setViewProps((p) => ({ ...p, center: { lat, lng, altitude: 0 } }));
-  }, []);
-
-  const handleMarkerClick = useCallback(() => {
-    console.log("Marker clicked!");
   }, []);
 
   const handleMap3DClick = useCallback(async (event: Map3DClickEvent) => {
@@ -52,69 +60,31 @@ const Map3DExample = () => {
     }
   }, []);
 
-  const handlePolygonClick = useCallback(() => {
-    console.log("Polygon clicked!");
+  // Update the handler to use createCustomRoute
+  const handleCreateRoute = useCallback(() => {
+    createCustomRoute(
+      { lat: 40.7144, lng: -74.0208 }, // NY coordinates
+      { lat: 40.7233, lng: -73.9989 }, // LA coordinates
+      [
+        { lat: 40.7178, lng: -73.9855 }, // Brooklyn side
+      ],
+    );
   }, []);
 
-  // Memoize the components
-  const memoizedMarker = useMemo(
-    () => (
-      <Marker3D
-        position={{ lat: 40.7079, lng: -74.0132 }}
-        title="Paris"
-        onClick={handleMarkerClick}
+  // Memoize the route display component
+  const routeDisplayComponent = useMemo(() => {
+    return selectedRoute ? (
+      <RouteWithMarkers
+        origin={selectedRoute.origin}
+        destination={selectedRoute.destination}
+        waypoints={selectedRoute.waypoints}
+        onDestinationMarkerClick={() =>
+          console.log("Destination marker clicked!")
+        }
+        onOriginMarkerClick={() => console.log("Origin marker clicked!")}
       />
-    ),
-    [],
-  );
-
-  const memoizedPolygon = useMemo(
-    () => (
-      <Polygon3D
-        outerCoordinates={[
-          { lat: 40.7144, lng: -74.0208, altitude: 1000 },
-          { lat: 40.6993, lng: -74.019, altitude: 1000 },
-          { lat: 40.7035, lng: -74.0004, altitude: 1000 },
-          { lat: 40.7144, lng: -74.0208, altitude: 1000 },
-        ]}
-        fillColor="rgba(255, 0, 0, 0.5)"
-        strokeColor="#0000ff"
-        strokeWidth={8}
-        extruded={true}
-        onClick={handlePolygonClick}
-      />
-    ),
-    [],
-  );
-
-  const memoizedPolyline = useMemo(
-    () => (
-      <Polyline3D
-        coordinates={[
-          // Financial District loop
-          { lat: 40.7144, lng: -74.0208 }, // One World Trade Center area
-          { lat: 40.7075, lng: -74.0021 }, // Near Brooklyn Bridge
-          { lat: 40.7033, lng: -74.0123 }, // Battery Park area
-          { lat: 40.7127, lng: -74.0134 }, // TriBeCa
-
-          // Midpoint landmarks
-          { lat: 40.7196, lng: -74.0066 }, // SoHo
-          { lat: 40.7233, lng: -73.9989 }, // Greenwich Village
-
-          // Lower East Side loop
-          { lat: 40.7169, lng: -73.9873 }, // Lower East Side
-          { lat: 40.7112, lng: -73.9939 }, // Chinatown
-          { lat: 40.7135, lng: -74.0021 }, // Little Italy
-          { lat: 40.7144, lng: -74.0208 }, // Back to start
-        ]}
-        strokeColor="rgba(25, 102, 210, 0.75)"
-        strokeWidth={10}
-        altitudeMode="RELATIVE_TO_GROUND"
-        onClick={() => console.log("Polyline clicked!")}
-      />
-    ),
-    [],
-  );
+    ) : null;
+  }, [selectedRoute]);
 
   return (
     <div className="relative w-full h-full">
@@ -124,10 +94,16 @@ const Map3DExample = () => {
         onClick={handleMap3DClick}
         // defaultLabelsDisabled
       >
-        {memoizedMarker}
-        {/* {memoizedPolygon} */}
-        {memoizedPolyline}
+        {routeDisplayComponent}
       </Map3D>
+      <div className="absolute top-4 right-8 z-10 space-y-2">
+        <button
+          className="bg-blue-50 px-4 py-2 rounded"
+          onClick={handleCreateRoute}
+        >
+          Show NY to LA Route
+        </button>
+      </div>
       <MapControls />
       <MiniMap camera3dProps={viewProps} onMapClick={handleMapClick}></MiniMap>
     </div>
