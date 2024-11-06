@@ -1,7 +1,7 @@
 // components/RouteWithMarkers.tsx
 import React from "react";
 import { Marker3D } from "./Marker3D";
-import { Route3D } from "./Route3D";
+import { Polyline3D } from "./Polyline3D";
 
 interface RouteWithMarkersProps {
   routeCoordinates: google.maps.LatLngLiteral[];
@@ -50,13 +50,15 @@ export const RouteWithMarkers = React.memo(
       };
     return (
       <>
-        <Route3D
-          routeCoordinates={routeCoordinates}
-          strokeColor={strokeColor}
-          strokeWidth={strokeWidth}
-          altitudeMode={altitudeMode}
-          onClick={onRouteClick}
-        />
+        {routeCoordinates.length > 0 && (
+          <Polyline3D
+            coordinates={routeCoordinates}
+            strokeColor={strokeColor}
+            strokeWidth={strokeWidth}
+            altitudeMode={altitudeMode}
+            onClick={onRouteClick}
+          />
+        )}
         {showMarkers && (
           <>
             <Marker3D
