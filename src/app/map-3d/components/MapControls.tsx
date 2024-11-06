@@ -4,7 +4,7 @@ import React, { useCallback } from "react";
 const MapControls = React.memo(() => {
   const { flyCameraTo } = useMap3D();
 
-  const handleFlyToSFO = useCallback(() => {
+  const handleFlyTo = useCallback(() => {
     flyCameraTo({
       endCamera: {
         center: { lat: 40.7079, lng: -74.0132, altitude: 1300 },
@@ -18,7 +18,7 @@ const MapControls = React.memo(() => {
   return (
     <button
       className="absolute top-4 left-4 bg-white px-4 py-2 rounded shadow"
-      onClick={handleFlyToSFO}
+      onClick={handleFlyTo}
     >
       Fly to Location
     </button>

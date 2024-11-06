@@ -4,10 +4,10 @@ import { Marker3D } from "./Marker3D";
 import { Route3D } from "./Route3D";
 
 interface RouteWithMarkersProps {
+  routeCoordinates: google.maps.LatLngLiteral[];
   origin: google.maps.LatLngLiteral;
   destination: google.maps.LatLngLiteral;
   waypoints?: google.maps.LatLngLiteral[];
-  travelMode?: google.maps.TravelMode;
   strokeColor?: string;
   strokeWidth?: number;
   altitudeMode?:
@@ -29,10 +29,10 @@ interface RouteWithMarkersProps {
 
 export const RouteWithMarkers = React.memo(
   ({
+    routeCoordinates,
     origin,
     destination,
     waypoints,
-    travelMode = google.maps.TravelMode.DRIVING,
     strokeColor = "rgba(66, 133, 244, 0.8)",
     strokeWidth = 8,
     altitudeMode = "RELATIVE_TO_GROUND",
@@ -51,12 +51,7 @@ export const RouteWithMarkers = React.memo(
     return (
       <>
         <Route3D
-          request={{
-            origin,
-            destination,
-            waypoints,
-            travelMode,
-          }}
+          routeCoordinates={routeCoordinates}
           strokeColor={strokeColor}
           strokeWidth={strokeWidth}
           altitudeMode={altitudeMode}
