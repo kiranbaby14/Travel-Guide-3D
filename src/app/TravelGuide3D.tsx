@@ -93,7 +93,7 @@ const Map3DExample = () => {
         cameraHeight: 150, // Meters above the car
         cameraDistance: 200, // Meters behind the car
         tilt: 45, // More natural viewing angle
-        smoothing: 3, // Adjust for smoother/sharper turns
+        smoothing: 5, // Adjust for smoother/sharper turns
       });
     }
   }, [calculateRoute, animateAlongPath]);

@@ -38,15 +38,28 @@ export const useCameraAnimation = (
     return () => stopAnimation();
   }, [stopAnimation]);
 
-  const interpolateAngle = (a: number, b: number, t: number) => {
+  // Enhanced angle interpolation with smoothing
+  const interpolateAngle = (
+    a: number,
+    b: number,
+    t: number,
+    smoothing: number,
+  ) => {
     const diff = b - a;
     const adjusted = ((diff + 180) % 360) - 180;
-    return a + adjusted * t;
+    // Apply smoothing using exponential moving average
+    return a + (adjusted * t) / smoothing;
   };
 
-  const lerp = (start: number, end: number, t: number, smoothing: number) => {
-    const smoothT = 1 - Math.pow(1 - t, smoothing);
-    return start + (end - start) * smoothT;
+  // New helper function for position smoothing
+  const smoothPosition = (
+    current: google.maps.LatLng,
+    target: google.maps.LatLng,
+    smoothing: number,
+  ): google.maps.LatLng => {
+    const lat = current.lat() + (target.lat() - current.lat()) / smoothing;
+    const lng = current.lng() + (target.lng() - current.lng()) / smoothing;
+    return new google.maps.LatLng(lat, lng);
   };
 
   const animateAlongPath = (
@@ -65,6 +78,8 @@ export const useCameraAnimation = (
 
     setIsAnimating(true);
     let startTime: number | null = null;
+    let lastCarPosition = path[0];
+    let lastCameraPosition = path[0];
 
     const animate = (currentTime: number) => {
       if (!startTime) startTime = currentTime;
@@ -75,53 +90,87 @@ export const useCameraAnimation = (
       const nextIndex = Math.min(index + 1, path.length - 1);
       const subProgress = (progress * (path.length - 1)) % 1;
 
-      // Use Google Maps geometry library for calculations
       const currentPoint = path[index];
       const nextPoint = path[nextIndex];
 
-      // Calculate car position using spherical interpolation
-      const carPosition = google.maps.geometry.spherical.interpolate(
+      // Calculate target car position
+      const targetCarPosition = google.maps.geometry.spherical.interpolate(
         currentPoint,
         nextPoint,
         subProgress,
       );
 
-      // Calculate heading using spherical geometry
-      const heading = google.maps.geometry.spherical.computeHeading(
-        currentPoint,
-        nextPoint,
+      // Apply smoothing to car position
+      const smoothedCarPosition = smoothPosition(
+        lastCarPosition,
+        targetCarPosition,
+        smoothing,
+      );
+      lastCarPosition = smoothedCarPosition;
+
+      // Calculate heading with look-ahead for smoother turns
+      const lookAheadIndex = Math.min(index + 2, path.length - 1);
+      const lookAheadPoint = path[lookAheadIndex];
+      const targetHeading = google.maps.geometry.spherical.computeHeading(
+        smoothedCarPosition,
+        lookAheadPoint,
       );
 
       // Smooth heading transitions
       const currentHeading = interpolateAngle(
         lastState.current.heading,
-        heading,
+        targetHeading,
         0.1,
+        smoothing,
       );
 
-      // Calculate camera offset using spherical geometry
-      const cameraOffset = google.maps.geometry.spherical.computeOffset(
-        carPosition,
-        -cameraDistance, // Negative distance to position camera behind the car
+      // Calculate and smooth camera position
+      const targetCameraOffset = google.maps.geometry.spherical.computeOffset(
+        smoothedCarPosition,
+        -cameraDistance,
         currentHeading,
       );
 
-      const dynamicTilt = tilt + Math.sin(progress * Math.PI * 8) * 2;
+      const smoothedCameraPosition = smoothPosition(
+        lastCameraPosition,
+        targetCameraOffset,
+        smoothing,
+      );
+      lastCameraPosition = smoothedCameraPosition;
+
+      // Add subtle tilt variation based on speed and turning
+      const speedFactor = Math.min(
+        google.maps.geometry.spherical.computeDistanceBetween(
+          currentPoint,
+          nextPoint,
+        ) / 100,
+        1,
+      );
+      const turnFactor = Math.abs(
+        (targetHeading - lastState.current.heading) / 180,
+      );
+      const dynamicTilt =
+        tilt +
+        Math.sin(progress * Math.PI * 8) * 2 * speedFactor +
+        turnFactor * 5;
 
       onCameraChange({
         center: {
-          lat: cameraOffset.lat(),
-          lng: cameraOffset.lng(),
+          lat: smoothedCameraPosition.lat(),
+          lng: smoothedCameraPosition.lng(),
           altitude: cameraHeight,
         },
         heading: currentHeading,
         tilt: dynamicTilt,
-        range: cameraDistance,
-        roll: Math.sin(progress * Math.PI * 4) * 2,
+        range: cameraDistance * (1 + turnFactor * 0.2), // Adjust distance in turns
+        roll: Math.sin(progress * Math.PI * 4) * 2 * turnFactor, // More roll in turns
       });
 
       lastState.current = {
-        position: { lat: carPosition.lat(), lng: carPosition.lng() },
+        position: {
+          lat: smoothedCarPosition.lat(),
+          lng: smoothedCarPosition.lng(),
+        },
         heading: currentHeading,
         tilt: dynamicTilt,
       };
