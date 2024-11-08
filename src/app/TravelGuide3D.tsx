@@ -62,7 +62,6 @@ const Map3DExample = () => {
       const place = await event.fetchPlace();
       await place.fetchFields({ fields: ["*"] });
       // Display place details or do something else.
-      console.log(place);
     }
   }, []);
 
@@ -77,7 +76,7 @@ const Map3DExample = () => {
     };
 
     // Create the route in state
-    createCustomRoute(route.origin, route.destination, route.waypoints);
+    createCustomRoute(route);
 
     // Calculate the route once
     const routeData = await calculateRoute({
@@ -90,12 +89,14 @@ const Map3DExample = () => {
     if (routeData) {
       // Start the animation using the calculated route data
       animateAlongPath(routeData.overview_path, {
-        duration: 10000,
-        altitude: 1000,
-        tilt: 60,
+        duration: 100000, // Slower for more realistic car movement
+        cameraHeight: 150, // Meters above the car
+        cameraDistance: 200, // Meters behind the car
+        tilt: 45, // More natural viewing angle
+        smoothing: 3, // Adjust for smoother/sharper turns
       });
     }
-  }, [createCustomRoute, calculateRoute, animateAlongPath]);
+  }, [calculateRoute, animateAlongPath]);
 
   // Memoize the route display component
   const routeDisplayComponent = useMemo(() => {

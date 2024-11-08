@@ -3,9 +3,16 @@ import type { Map3DCameraProps } from "../Map3D";
 
 interface AnimationConfig {
   duration?: number;
-  altitude?: number;
+  cameraHeight?: number;
+  cameraDistance?: number;
   tilt?: number;
-  heading?: number;
+  smoothing?: number;
+}
+
+interface AnimationState {
+  position: google.maps.LatLngLiteral;
+  heading: number;
+  tilt: number;
 }
 
 export const useCameraAnimation = (
@@ -13,6 +20,11 @@ export const useCameraAnimation = (
 ) => {
   const animationRef = useRef<number>();
   const [isAnimating, setIsAnimating] = useState(false);
+  const lastState = useRef<AnimationState>({
+    position: { lat: 0, lng: 0 },
+    heading: 0,
+    tilt: 0,
+  });
 
   const stopAnimation = useCallback(() => {
     if (animationRef.current) {
@@ -26,79 +38,103 @@ export const useCameraAnimation = (
     return () => stopAnimation();
   }, [stopAnimation]);
 
-  const animateAlongPath = useCallback(
-    (path: google.maps.LatLng[], config: AnimationConfig = {}) => {
-      const {
-        duration = 10000,
-        altitude = 1000,
-        tilt = 60,
-        heading = 0,
-      } = config;
+  const interpolateAngle = (a: number, b: number, t: number) => {
+    const diff = b - a;
+    const adjusted = ((diff + 180) % 360) - 180;
+    return a + adjusted * t;
+  };
 
-      if (path.length < 2) return;
-      setIsAnimating(true);
+  const lerp = (start: number, end: number, t: number, smoothing: number) => {
+    const smoothT = 1 - Math.pow(1 - t, smoothing);
+    return start + (end - start) * smoothT;
+  };
 
-      let startTime: number | null = null;
+  const animateAlongPath = (
+    path: google.maps.LatLng[],
+    config: AnimationConfig = {},
+  ) => {
+    if (path.length < 2) return;
 
-      const animate = (currentTime: number) => {
-        if (!startTime) startTime = currentTime;
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
+    const {
+      duration = 10000,
+      cameraHeight = 50,
+      cameraDistance = 100,
+      tilt = 45,
+      smoothing = 3,
+    } = config;
 
-        // Get current position along the path
-        const index = Math.floor(progress * (path.length - 1));
-        const nextIndex = Math.min(index + 1, path.length - 1);
-        const subProgress = (progress * (path.length - 1)) % 1;
+    setIsAnimating(true);
+    let startTime: number | null = null;
 
-        // Interpolate between current and next point
-        const currentPoint = path[index];
-        const nextPoint = path[nextIndex];
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
 
-        const lat =
-          currentPoint.lat() +
-          (nextPoint.lat() - currentPoint.lat()) * subProgress;
-        const lng =
-          currentPoint.lng() +
-          (nextPoint.lng() - currentPoint.lng()) * subProgress;
+      const index = Math.floor(progress * (path.length - 1));
+      const nextIndex = Math.min(index + 1, path.length - 1);
+      const subProgress = (progress * (path.length - 1)) % 1;
 
-        // Calculate heading based on current and next point
-        const currentHeading = google.maps.geometry.spherical.computeHeading(
-          currentPoint,
-          nextPoint,
-        );
+      // Use Google Maps geometry library for calculations
+      const currentPoint = path[index];
+      const nextPoint = path[nextIndex];
 
-        // Calculate dynamic altitude based on distance between points
-        const distance = google.maps.geometry.spherical.computeDistanceBetween(
-          currentPoint,
-          nextPoint,
-        );
-        const dynamicAltitude = Math.min(
-          altitude,
-          Math.max(500, distance * 0.5),
-        );
+      // Calculate car position using spherical interpolation
+      const carPosition = google.maps.geometry.spherical.interpolate(
+        currentPoint,
+        nextPoint,
+        subProgress,
+      );
 
-        // Add some variation to tilt based on progress
-        const dynamicTilt = tilt + Math.sin(progress * Math.PI * 2) * 5;
+      // Calculate heading using spherical geometry
+      const heading = google.maps.geometry.spherical.computeHeading(
+        currentPoint,
+        nextPoint,
+      );
 
-        onCameraChange({
-          center: { lat, lng, altitude: dynamicAltitude },
-          heading: currentHeading,
-          tilt: dynamicTilt,
-          range: dynamicAltitude,
-          roll: 0,
-        });
+      // Smooth heading transitions
+      const currentHeading = interpolateAngle(
+        lastState.current.heading,
+        heading,
+        0.1,
+      );
 
-        if (progress < 1) {
-          animationRef.current = requestAnimationFrame(animate);
-        } else {
-          setIsAnimating(false);
-        }
+      // Calculate camera offset using spherical geometry
+      const cameraOffset = google.maps.geometry.spherical.computeOffset(
+        carPosition,
+        -cameraDistance, // Negative distance to position camera behind the car
+        currentHeading,
+      );
+
+      const dynamicTilt = tilt + Math.sin(progress * Math.PI * 8) * 2;
+
+      onCameraChange({
+        center: {
+          lat: cameraOffset.lat(),
+          lng: cameraOffset.lng(),
+          altitude: cameraHeight,
+        },
+        heading: currentHeading,
+        tilt: dynamicTilt,
+        range: cameraDistance,
+        roll: Math.sin(progress * Math.PI * 4) * 2,
+      });
+
+      lastState.current = {
+        position: { lat: carPosition.lat(), lng: carPosition.lng() },
+        heading: currentHeading,
+        tilt: dynamicTilt,
       };
 
-      animationRef.current = requestAnimationFrame(animate);
-    },
-    [onCameraChange],
-  );
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        setIsAnimating(false);
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+  };
 
   return {
     animateAlongPath,

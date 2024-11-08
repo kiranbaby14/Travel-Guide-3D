@@ -16,10 +16,10 @@ import { useMap3D } from "@/context/Map3DContext";
 
 export type Map3DCameraProps = {
   center: google.maps.LatLngAltitudeLiteral;
-  range: number;
-  heading: number;
-  tilt: number;
-  roll: number;
+  range?: number;
+  heading?: number;
+  tilt?: number;
+  roll?: number;
 };
 
 export type Map3DProps = google.maps.maps3d.Map3DElementOptions & {
