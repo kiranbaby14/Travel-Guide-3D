@@ -15,7 +15,7 @@ export interface Polyline3DProps {
 
 export const Polyline3D: React.FC<Polyline3DProps> = ({
   coordinates,
-  altitudeMode = "RELATIVE_TO_GROUND",
+  altitudeMode = "RELATIVE_TO_MESH",
   strokeColor = "rgba(25, 102, 210, 0.75)",
   strokeWidth = 10,
   onClick,

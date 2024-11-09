@@ -35,7 +35,7 @@ export const RouteWithMarkers = React.memo(
     waypoints,
     strokeColor = "rgba(66, 133, 244, 0.8)",
     strokeWidth = 8,
-    altitudeMode = "RELATIVE_TO_GROUND",
+    altitudeMode = "RELATIVE_TO_MESH",
     showMarkers = true,
     originMarkerTitle = "Origin",
     destinationMarkerTitle = "Destination",
