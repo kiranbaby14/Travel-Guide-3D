@@ -102,39 +102,6 @@ const Map3DExample = () => {
     [calculateRoute, animateAlongPath],
   );
 
-  const handleOriginSelect = useCallback(
-    (location: google.maps.LatLngLiteral) => {
-      // handleCreateRoute({
-      //   origin: location,
-      //   destination: selectedRoute?.destination || location,
-      //   waypoints: selectedRoute?.waypoints || [],
-      // });
-    },
-    [],
-  );
-
-  const handleDestinationSelect = useCallback(
-    (location: google.maps.LatLngLiteral) => {
-      // handleCreateRoute({
-      //   origin: selectedRoute?.origin || location,
-      //   destination: location,
-      //   waypoints: selectedRoute?.waypoints || [],
-      // });
-    },
-    [],
-  );
-
-  const handleWaypointSelect = useCallback(
-    (location: google.maps.LatLngLiteral) => {
-      // handleCreateRoute({
-      //   origin: selectedRoute?.origin || location,
-      //   destination: selectedRoute?.destination || location,
-      //   waypoints: [...(selectedRoute?.waypoints || []), location],
-      // });
-    },
-    [],
-  );
-
   const handleClearWaypoints = useCallback(() => {
     if (selectedRoute) {
       // handleCreateRoute({
@@ -145,22 +112,6 @@ const Map3DExample = () => {
     }
   }, []);
 
-  // Memoize the route display component
-  const routeDisplayComponent = useMemo(() => {
-    return selectedRoute && routeData ? (
-      <RouteWithMarkers
-        routeCoordinates={routeData.routeCoordinates}
-        origin={selectedRoute.origin}
-        destination={selectedRoute.destination}
-        waypoints={selectedRoute.waypoints}
-        onDestinationMarkerClick={() =>
-          console.log("Destination marker clicked!")
-        }
-        onOriginMarkerClick={() => console.log("Origin marker clicked!")}
-      />
-    ) : null;
-  }, [selectedRoute, routeData]);
-
   return (
     <div className="relative w-full h-full">
       <Map3D
@@ -168,25 +119,13 @@ const Map3DExample = () => {
         onCameraChange={handleCameraChange}
         onClick={handleMap3DClick}
         defaultLabelsDisabled
-      >
-        {routeDisplayComponent}
-      </Map3D>
+      ></Map3D>
       <PlaceSelector
-        onOriginSelect={handleOriginSelect}
-        onDestinationSelect={handleDestinationSelect}
-        onWaypointSelect={handleWaypointSelect}
         onClearWaypoints={handleClearWaypoints}
+        animateAlongPath={animateAlongPath}
+        isAnimating={isAnimating}
+        stopAnimation={stopAnimation}
       />
-      <div className="absolute top-4 right-8 z-10 space-y-2">
-        <button
-          className="bg-blue-50 px-4 py-2 rounded"
-          onClick={handleCreateRoute}
-          disabled={isAnimating}
-        >
-          {isAnimating ? "Touring..." : "Show NY to LA Route"}
-        </button>
-      </div>
-      <MapControls />
       <MiniMap camera3dProps={viewProps} onMapClick={handleMapClick}></MiniMap>
     </div>
   );

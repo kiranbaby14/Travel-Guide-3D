@@ -2,6 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import { useMap3D } from "@/context/Map3DContext";
+import { Marker3D } from "./Marker3D";
+import { Polyline3D } from "./Polyline3D";
+import { useRouteCalculation } from "../hooks";
+import { Button } from "@/components/ui/button";
+import { Play, Square } from "lucide-react";
 
 interface Location {
   lat: number;
@@ -14,110 +19,282 @@ interface Waypoint {
 }
 
 interface PlaceSelectionProps {
-  onOriginSelect: (location: Location) => void;
-  onDestinationSelect: (location: Location) => void;
+  onOriginSelect?: (location: Location) => void;
+  onDestinationSelect?: (location: Location) => void;
   onWaypointSelect?: (location: Location) => void;
   onClearWaypoints?: () => void;
+  animateAlongPath: (
+    path: google.maps.LatLng[],
+    options?: {
+      duration?: number;
+      cameraHeight?: number;
+      cameraDistance?: number;
+      tilt?: number;
+      smoothing?: number;
+    },
+  ) => void;
+  stopAnimation: () => void;
+  isAnimating?: boolean;
 }
 
-type TFlyCameraOptions = {
-  endCamera: {
-    center: google.maps.LatLngAltitudeLiteral;
-    tilt: number;
-    range: number;
-  };
-  durationMillis?: number;
-};
+const PlaceSelector: React.FC<PlaceSelectionProps> = ({
+  onOriginSelect,
+  onDestinationSelect,
+  onWaypointSelect,
+  onClearWaypoints,
+  animateAlongPath,
+  stopAnimation,
+  isAnimating = false,
+}) => {
+  const placesLibrary = useMapsLibrary("places");
+  const { map3DElement, flyCameraTo } = useMap3D();
+  const { calculateRoute, routeData, isCalculating } = useRouteCalculation();
 
-// Custom hook for managing place autocomplete
-const usePlaceAutocomplete = (
-  inputRef: React.RefObject<HTMLInputElement>,
-  placesLibrary: google.maps.PlacesLibrary,
-  map3DElement: google.maps.maps3d.Map3DElement,
-  flyCameraTo: (options: TFlyCameraOptions) => void,
-  onPlaceSelect: (location: Location) => void,
-) => {
+  // State for locations and route
+  const [origin, setOrigin] = useState<Location | null>(null);
+  const [destination, setDestination] = useState<Location | null>(null);
+  const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
+
+  // Update route when locations change
   useEffect(() => {
-    if (!placesLibrary || !map3DElement || !inputRef.current) return;
+    if (origin && destination) {
+      calculateRoute({
+        origin,
+        destination,
+        waypoints: waypoints.map((wp) => wp.location),
+        travelMode: google.maps.TravelMode.DRIVING,
+      });
+    }
+  }, [origin, destination, waypoints, calculateRoute]);
 
-    const autocompleteOptions: google.maps.places.AutocompleteOptions = {
-      bounds: map3DElement.bounds as google.maps.LatLngBounds,
-      fields: ["geometry", "name", "formatted_address"],
-      types: ["establishment", "geocode"],
-    };
+  const handleTourControl = () => {
+    if (isAnimating) {
+      stopAnimation();
+    } else if (routeData?.overview_path) {
+      animateAlongPath(routeData.overview_path, {
+        duration: 100000,
+        cameraHeight: 150,
+        cameraDistance: 150,
+        tilt: 45,
+        smoothing: 5,
+      });
+    }
+  };
 
-    const autocomplete = new placesLibrary.Autocomplete(
-      inputRef.current,
-      autocompleteOptions,
-    );
+  const handlePlaceSelect = async (
+    location: Location,
+    type: "origin" | "destination" | "waypoint",
+  ) => {
+    // Fly to selected location
+    flyCameraTo({
+      endCamera: {
+        center: {
+          ...location,
+          altitude: 1000,
+        },
+        tilt: 45,
+        range: 2000,
+      },
+    });
 
-    const handlePlaceChanged = () => {
-      const place = autocomplete.getPlace();
-      if (place.geometry?.location) {
-        const location = {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng(),
+    // Update state based on selection type
+    switch (type) {
+      case "origin":
+        setOrigin(location);
+        onOriginSelect?.(location);
+        break;
+      case "destination":
+        setDestination(location);
+        onDestinationSelect?.(location);
+        break;
+      case "waypoint":
+        const newWaypoint = {
+          id: crypto.randomUUID(),
+          location,
         };
+        setWaypoints((prev) => [...prev, newWaypoint]);
+        onWaypointSelect?.(location);
+        break;
+    }
+  };
 
-        // Notify about the selected place
-        onPlaceSelect(location);
+  const handleRemoveWaypoint = (id: string) => {
+    setWaypoints((prev) => prev.filter((wp) => wp.id !== id));
+  };
 
-        // Use the context's flyCameraTo
-        flyCameraTo({
-          endCamera: {
-            center: {
-              ...location,
-              altitude: 1000,
-            },
-            tilt: 45,
-            range: 2000,
-          },
-        });
+  const clearAllWaypoints = () => {
+    setWaypoints([]);
+    onClearWaypoints?.();
+  };
 
-        // Clear input for waypoints only
-        if (inputRef.current?.placeholder?.includes("stop")) {
-          inputRef.current.value = "";
-        }
+  if (!placesLibrary || !map3DElement || !flyCameraTo) return null;
 
-        console.log("Selected place:", {
-          name: place.name,
-          address: place.formatted_address,
-          location: location,
-        });
-      }
-    };
+  return (
+    <>
+      <Card className="absolute top-4 left-4 z-10 p-4 w-80 space-y-4">
+        <div className="space-y-2">
+          <PlaceInput
+            placeholder="Enter starting point"
+            onPlaceSelect={(location) => handlePlaceSelect(location, "origin")}
+            placesLibrary={placesLibrary}
+            map3DElement={map3DElement}
+          />
+          <PlaceInput
+            placeholder="Enter destination"
+            onPlaceSelect={(location) =>
+              handlePlaceSelect(location, "destination")
+            }
+            placesLibrary={placesLibrary}
+            map3DElement={map3DElement}
+          />
+          <PlaceInput
+            placeholder="Add a stop (optional)"
+            onPlaceSelect={(location) =>
+              handlePlaceSelect(location, "waypoint")
+            }
+            placesLibrary={placesLibrary}
+            map3DElement={map3DElement}
+          />
+        </div>
 
-    autocomplete.addListener("place_changed", handlePlaceChanged);
+        {waypoints.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-sm font-medium">Stops:</div>
+            {waypoints.map((waypoint, index) => (
+              <WaypointItem
+                key={waypoint.id}
+                waypoint={waypoint}
+                index={index}
+                onRemove={handleRemoveWaypoint}
+              />
+            ))}
+            <button
+              onClick={clearAllWaypoints}
+              className="text-sm text-red-600 hover:text-red-800"
+            >
+              Clear all stops
+            </button>
+          </div>
+        )}
 
-    return () => {
-      google.maps.event.clearInstanceListeners(autocomplete);
-    };
-  }, [placesLibrary, map3DElement, flyCameraTo, onPlaceSelect]);
+        {routeData && (
+          <div className="text-sm space-y-1">
+            <div>Distance: {routeData.distance}</div>
+            <div>Duration: {routeData.duration}</div>
+          </div>
+        )}
+      </Card>
+
+      {/* Tour Control Button */}
+      {routeData && !isCalculating && (
+        <div className="absolute top-8 right-8 z-10 space-y-2">
+          <Button
+            onClick={handleTourControl}
+            className={`${
+              isAnimating
+                ? "bg-red-500 hover:bg-red-600"
+                : "bg-blue-500 hover:bg-blue-600"
+            } text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all duration-200`}
+          >
+            {isAnimating ? (
+              <>
+                <Square className="w-4 h-4" />
+                Stop Tour
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4" />
+                Start Tour
+              </>
+            )}
+          </Button>
+          {routeData && (
+            <div className="bg-white/90 p-2 rounded shadow text-sm text-center">
+              {routeData.distance} • {routeData.duration}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Markers and Route */}
+      {origin && (
+        <Marker3D
+          position={origin}
+          title="Origin"
+          altitude={50}
+          altitudeMode="RELATIVE_TO_GROUND"
+        />
+      )}
+      {destination && (
+        <Marker3D
+          position={destination}
+          title="Destination"
+          altitude={50}
+          altitudeMode="RELATIVE_TO_GROUND"
+        />
+      )}
+      {waypoints.map((waypoint) => (
+        <Marker3D
+          key={waypoint.id}
+          position={waypoint.location}
+          title="Waypoint"
+          altitude={50}
+          altitudeMode="RELATIVE_TO_GROUND"
+        />
+      ))}
+      {routeData && (
+        <Polyline3D
+          coordinates={routeData.routeCoordinates}
+          strokeColor="rgba(25, 102, 210, 0.75)"
+          strokeWidth={10}
+          altitudeMode="RELATIVE_TO_GROUND"
+        />
+      )}
+    </>
+  );
 };
 
-// Input component with autocomplete
+// PlaceInput component implementation (same as before)
 const PlaceInput = React.memo(
   ({
     placeholder,
     onPlaceSelect,
     placesLibrary,
     map3DElement,
-    flyCameraTo,
   }: {
     placeholder: string;
     onPlaceSelect: (location: Location) => void;
     placesLibrary: google.maps.PlacesLibrary;
     map3DElement: google.maps.maps3d.Map3DElement;
-    flyCameraTo: (options: TFlyCameraOptions) => void;
   }) => {
     const inputRef = useRef<HTMLInputElement>(null);
-    usePlaceAutocomplete(
-      inputRef,
-      placesLibrary,
-      map3DElement,
-      flyCameraTo,
-      onPlaceSelect,
-    );
+
+    useEffect(() => {
+      if (!placesLibrary || !map3DElement || !inputRef.current) return;
+
+      const autocomplete = new placesLibrary.Autocomplete(inputRef.current, {
+        bounds: map3DElement.bounds as google.maps.LatLngBounds,
+        fields: ["geometry", "name", "formatted_address"],
+        types: ["establishment", "geocode"],
+      });
+
+      const handlePlaceChanged = () => {
+        const place = autocomplete.getPlace();
+        if (place.geometry?.location) {
+          const location = {
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          };
+          onPlaceSelect(location);
+        }
+      };
+
+      autocomplete.addListener("place_changed", handlePlaceChanged);
+
+      return () => {
+        google.maps.event.clearInstanceListeners(autocomplete);
+      };
+    }, [placesLibrary, map3DElement, onPlaceSelect]);
 
     return (
       <input
@@ -131,7 +308,7 @@ const PlaceInput = React.memo(
 
 PlaceInput.displayName = "PlaceInput";
 
-// Waypoint item component
+// WaypointItem component (same as before)
 const WaypointItem = React.memo(
   ({
     waypoint,
@@ -159,89 +336,5 @@ const WaypointItem = React.memo(
 );
 
 WaypointItem.displayName = "WaypointItem";
-
-// Main PlaceSelector component
-const PlaceSelector: React.FC<PlaceSelectionProps> = ({
-  onOriginSelect,
-  onDestinationSelect,
-  onWaypointSelect,
-  onClearWaypoints,
-}) => {
-  const placesLibrary = useMapsLibrary("places");
-  const { map3DElement, flyCameraTo } = useMap3D();
-  const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
-
-  const handleWaypointSelect = (location: Location) => {
-    if (onWaypointSelect) {
-      const newWaypoint = {
-        id: crypto.randomUUID(),
-        location,
-      };
-      setWaypoints((prev) => [...prev, newWaypoint]);
-      onWaypointSelect(location);
-    }
-  };
-
-  const handleRemoveWaypoint = (id: string) => {
-    const newWaypoints = waypoints.filter((wp) => wp.id !== id);
-    setWaypoints(newWaypoints);
-    if (newWaypoints.length === 0) {
-      onClearWaypoints?.();
-    }
-  };
-
-  if (!placesLibrary || !map3DElement || !flyCameraTo) return null;
-
-  return (
-    <Card className="absolute top-4 left-4 z-10 p-4 w-80 space-y-4">
-      <div className="space-y-2">
-        <PlaceInput
-          placeholder="Enter starting point"
-          onPlaceSelect={onOriginSelect}
-          placesLibrary={placesLibrary}
-          map3DElement={map3DElement}
-          flyCameraTo={flyCameraTo}
-        />
-        <PlaceInput
-          placeholder="Enter destination"
-          onPlaceSelect={onDestinationSelect}
-          placesLibrary={placesLibrary}
-          map3DElement={map3DElement}
-          flyCameraTo={flyCameraTo}
-        />
-        <PlaceInput
-          placeholder="Add a stop (optional)"
-          onPlaceSelect={handleWaypointSelect}
-          placesLibrary={placesLibrary}
-          map3DElement={map3DElement}
-          flyCameraTo={flyCameraTo}
-        />
-      </div>
-
-      {waypoints.length > 0 && (
-        <div className="space-y-2">
-          <div className="text-sm font-medium">Stops:</div>
-          {waypoints.map((waypoint, index) => (
-            <WaypointItem
-              key={waypoint.id}
-              waypoint={waypoint}
-              index={index}
-              onRemove={handleRemoveWaypoint}
-            />
-          ))}
-          <button
-            onClick={() => {
-              setWaypoints([]);
-              onClearWaypoints?.();
-            }}
-            className="text-sm text-red-600 hover:text-red-800"
-          >
-            Clear all stops
-          </button>
-        </div>
-      )}
-    </Card>
-  );
-};
 
 export { PlaceSelector };
