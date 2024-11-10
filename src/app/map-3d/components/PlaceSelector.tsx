@@ -69,7 +69,7 @@ const PlaceSelector: React.FC<PlaceSelectionProps> = ({
         travelMode: google.maps.TravelMode.DRIVING,
       });
     }
-  }, [origin, destination, waypoints, calculateRoute]);
+  }, [origin, destination, waypoints]);
 
   const handleStartTour = () => {
     console.log(routeData?.overview_path);

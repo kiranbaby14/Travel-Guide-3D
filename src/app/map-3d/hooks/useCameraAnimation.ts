@@ -104,6 +104,9 @@ export const useCameraAnimation = (
   ) => {
     if (path.length < 2) return;
 
+    // First stop any existing animation
+    stopAnimation();
+
     const {
       duration = 10000,
       cameraHeight = 50,
@@ -112,9 +115,10 @@ export const useCameraAnimation = (
       smoothing = 3,
     } = config;
 
-    setIsAnimating(true);
     pauseState.current.startTime = performance.now();
     pauseState.current.totalPausedTime = 0;
+    setIsAnimating(true);
+
     let lastCarPosition = path[0];
     let lastCameraPosition = path[0];
 
@@ -132,7 +136,7 @@ export const useCameraAnimation = (
         pauseState.current.totalPausedTime;
       const progress = Math.min(elapsed / duration, 1);
 
-      const index = Math.floor(progress * (path.length - 1));
+      const index = Math.max(Math.floor(progress * (path.length - 1)), 0);
       const nextIndex = Math.min(index + 1, path.length - 1);
       const subProgress = (progress * (path.length - 1)) % 1;
 
