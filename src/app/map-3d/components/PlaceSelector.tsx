@@ -6,7 +6,7 @@ import { Marker3D } from "./Marker3D";
 import { Polyline3D } from "./Polyline3D";
 import { useRouteCalculation } from "../hooks";
 import { Button } from "@/components/ui/button";
-import { Play, Square } from "lucide-react";
+import { Pause, Play, Square } from "lucide-react";
 
 interface Location {
   lat: number;
@@ -34,7 +34,9 @@ interface PlaceSelectionProps {
     },
   ) => void;
   stopAnimation: () => void;
+  togglePause: () => void;
   isAnimating?: boolean;
+  isPaused?: boolean;
 }
 
 const PlaceSelector: React.FC<PlaceSelectionProps> = ({
@@ -44,7 +46,9 @@ const PlaceSelector: React.FC<PlaceSelectionProps> = ({
   onClearWaypoints,
   animateAlongPath,
   stopAnimation,
+  togglePause,
   isAnimating = false,
+  isPaused = false,
 }) => {
   const placesLibrary = useMapsLibrary("places");
   const { map3DElement, flyCameraTo } = useMap3D();
@@ -67,10 +71,9 @@ const PlaceSelector: React.FC<PlaceSelectionProps> = ({
     }
   }, [origin, destination, waypoints, calculateRoute]);
 
-  const handleTourControl = () => {
-    if (isAnimating) {
-      stopAnimation();
-    } else if (routeData?.overview_path) {
+  const handleStartTour = () => {
+    console.log(routeData?.overview_path);
+    if (routeData?.overview_path) {
       animateAlongPath(routeData.overview_path, {
         duration: 100000,
         cameraHeight: 150,
@@ -185,29 +188,49 @@ const PlaceSelector: React.FC<PlaceSelectionProps> = ({
         )}
       </Card>
 
-      {/* Tour Control Button */}
+      {/* Tour Controls */}
       {routeData && !isCalculating && (
-        <div className="absolute top-8 right-8 z-10 space-y-2">
-          <Button
-            onClick={handleTourControl}
-            className={`${
-              isAnimating
-                ? "bg-red-500 hover:bg-red-600"
-                : "bg-blue-500 hover:bg-blue-600"
-            } text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all duration-200`}
-          >
-            {isAnimating ? (
-              <>
-                <Square className="w-4 h-4" />
-                Stop Tour
-              </>
-            ) : (
-              <>
+        <div className="absolute bottom-8 right-8 z-10 space-y-2">
+          <div className="flex gap-2">
+            {!isAnimating ? (
+              // Start button
+              <Button
+                onClick={handleStartTour}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all duration-200"
+              >
                 <Play className="w-4 h-4" />
                 Start Tour
+              </Button>
+            ) : (
+              <>
+                {/* Pause/Resume button */}
+                <Button
+                  onClick={togglePause}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all duration-200"
+                >
+                  {isPaused ? (
+                    <>
+                      <Play className="w-4 h-4" />
+                      Resume
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="w-4 h-4" />
+                      Pause
+                    </>
+                  )}
+                </Button>
+                {/* Stop button */}
+                <Button
+                  onClick={stopAnimation}
+                  className="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all duration-200"
+                >
+                  <Square className="w-4 h-4" />
+                  Stop
+                </Button>
               </>
             )}
-          </Button>
+          </div>
           {routeData && (
             <div className="bg-white/90 p-2 rounded shadow text-sm text-center">
               {routeData.distance} • {routeData.duration}

@@ -1,14 +1,12 @@
 "use client";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { APIProvider, MapMouseEvent } from "@vis.gl/react-google-maps";
 import { MiniMap } from "./minimap";
 import {
   Map3D,
   Map3DCameraProps,
   Map3DClickEvent,
-  MapControls,
   PlaceSelector,
-  RouteWithMarkers,
   useCameraAnimation,
   useRouteCalculation,
 } from "./map-3d";
@@ -48,8 +46,13 @@ const Map3DExample = () => {
     setViewProps((oldProps) => ({ ...oldProps, ...props }));
   }, []);
 
-  const { animateAlongPath, isAnimating, stopAnimation } =
-    useCameraAnimation(handleCameraChange);
+  const {
+    animateAlongPath,
+    isAnimating,
+    isPaused,
+    stopAnimation,
+    togglePause,
+  } = useCameraAnimation(handleCameraChange);
 
   const handleMapClick = useCallback((ev: MapMouseEvent) => {
     if (!ev.detail.latLng) return;
@@ -123,8 +126,10 @@ const Map3DExample = () => {
       <PlaceSelector
         onClearWaypoints={handleClearWaypoints}
         animateAlongPath={animateAlongPath}
-        isAnimating={isAnimating}
         stopAnimation={stopAnimation}
+        togglePause={togglePause}
+        isAnimating={isAnimating}
+        isPaused={isPaused}
       />
       <MiniMap camera3dProps={viewProps} onMapClick={handleMapClick}></MiniMap>
     </div>

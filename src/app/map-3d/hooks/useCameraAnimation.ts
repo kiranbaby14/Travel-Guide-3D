@@ -20,10 +20,23 @@ export const useCameraAnimation = (
 ) => {
   const animationRef = useRef<number>();
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const isPausedRef = useRef(false); // Add ref to track current pause state
   const lastState = useRef<AnimationState>({
     position: { lat: 0, lng: 0 },
     heading: 0,
     tilt: 0,
+  });
+
+  // Add refs to store pause state
+  const pauseState = useRef<{
+    pauseTime: number;
+    startTime: number;
+    totalPausedTime: number;
+  }>({
+    pauseTime: 0,
+    startTime: 0,
+    totalPausedTime: 0,
   });
 
   const stopAnimation = useCallback(() => {
@@ -32,13 +45,38 @@ export const useCameraAnimation = (
       animationRef.current = undefined;
     }
     setIsAnimating(false);
+    setIsPaused(false);
+    isPausedRef.current = false;
+    // Reset pause state
+    pauseState.current = {
+      pauseTime: 0,
+      startTime: 0,
+      totalPausedTime: 0,
+    };
+  }, []);
+
+  const togglePause = useCallback(() => {
+    setIsPaused((current) => {
+      const newPausedState = !current;
+      isPausedRef.current = newPausedState; // Update ref immediately
+
+      if (newPausedState) {
+        // Pausing - store current time
+        pauseState.current.pauseTime = performance.now();
+      } else {
+        // Resuming - calculate total paused time
+        pauseState.current.totalPausedTime +=
+          performance.now() - pauseState.current.pauseTime;
+      }
+      return newPausedState;
+    });
   }, []);
 
   useEffect(() => {
     return () => stopAnimation();
   }, [stopAnimation]);
 
-  // Enhanced angle interpolation with smoothing
+  // Your existing helper functions remain the same
   const interpolateAngle = (
     a: number,
     b: number,
@@ -47,11 +85,9 @@ export const useCameraAnimation = (
   ) => {
     const diff = b - a;
     const adjusted = ((diff + 180) % 360) - 180;
-    // Apply smoothing using exponential moving average
     return a + (adjusted * t) / smoothing;
   };
 
-  // New helper function for position smoothing
   const smoothPosition = (
     current: google.maps.LatLng,
     target: google.maps.LatLng,
@@ -77,13 +113,23 @@ export const useCameraAnimation = (
     } = config;
 
     setIsAnimating(true);
-    let startTime: number | null = null;
+    pauseState.current.startTime = performance.now();
+    pauseState.current.totalPausedTime = 0;
     let lastCarPosition = path[0];
     let lastCameraPosition = path[0];
 
     const animate = (currentTime: number) => {
-      if (!startTime) startTime = currentTime;
-      const elapsed = currentTime - startTime;
+      // If paused, keep requesting frames but don't update position
+      if (isPausedRef.current) {
+        animationRef.current = requestAnimationFrame(animate);
+        return;
+      }
+
+      // Calculate progress accounting for paused time
+      const elapsed =
+        currentTime -
+        pauseState.current.startTime -
+        pauseState.current.totalPausedTime;
       const progress = Math.min(elapsed / duration, 1);
 
       const index = Math.floor(progress * (path.length - 1));
@@ -93,14 +139,13 @@ export const useCameraAnimation = (
       const currentPoint = path[index];
       const nextPoint = path[nextIndex];
 
-      // Calculate target car position
+      // Rest of your animation logic remains the same
       const targetCarPosition = google.maps.geometry.spherical.interpolate(
         currentPoint,
         nextPoint,
         subProgress,
       );
 
-      // Apply smoothing to car position
       const smoothedCarPosition = smoothPosition(
         lastCarPosition,
         targetCarPosition,
@@ -108,7 +153,6 @@ export const useCameraAnimation = (
       );
       lastCarPosition = smoothedCarPosition;
 
-      // Calculate heading with look-ahead for smoother turns
       const lookAheadIndex = Math.min(index + 2, path.length - 1);
       const lookAheadPoint = path[lookAheadIndex];
       const targetHeading = google.maps.geometry.spherical.computeHeading(
@@ -116,7 +160,6 @@ export const useCameraAnimation = (
         lookAheadPoint,
       );
 
-      // Smooth heading transitions
       const currentHeading = interpolateAngle(
         lastState.current.heading,
         targetHeading,
@@ -124,7 +167,6 @@ export const useCameraAnimation = (
         smoothing,
       );
 
-      // Calculate and smooth camera position
       const targetCameraOffset = google.maps.geometry.spherical.computeOffset(
         smoothedCarPosition,
         -cameraDistance,
@@ -138,7 +180,6 @@ export const useCameraAnimation = (
       );
       lastCameraPosition = smoothedCameraPosition;
 
-      // Add subtle tilt variation based on speed and turning
       const speedFactor = Math.min(
         google.maps.geometry.spherical.computeDistanceBetween(
           currentPoint,
@@ -162,8 +203,8 @@ export const useCameraAnimation = (
         },
         heading: currentHeading,
         tilt: dynamicTilt,
-        range: cameraDistance * (1 + turnFactor * 0.2), // Adjust distance in turns
-        roll: Math.sin(progress * Math.PI * 4) * 2 * turnFactor, // More roll in turns
+        range: cameraDistance * (1 + turnFactor * 0.2),
+        roll: Math.sin(progress * Math.PI * 4) * 2 * turnFactor,
       });
 
       lastState.current = {
@@ -179,6 +220,7 @@ export const useCameraAnimation = (
         animationRef.current = requestAnimationFrame(animate);
       } else {
         setIsAnimating(false);
+        setIsPaused(false);
       }
     };
 
@@ -188,6 +230,8 @@ export const useCameraAnimation = (
   return {
     animateAlongPath,
     isAnimating,
+    isPaused,
     stopAnimation,
+    togglePause,
   };
 };
