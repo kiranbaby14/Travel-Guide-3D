@@ -20,7 +20,6 @@ export const useRouteCalculation = () => {
   const routesLibrary = useMapsLibrary("routes");
   const [routeService, setRouteService] =
     useState<google.maps.DirectionsService | null>(null);
-  const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,13 +65,11 @@ export const useRouteCalculation = () => {
           duration: leg.duration?.text || "",
         };
 
-        setRouteData(data);
         return data;
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Failed to calculate route";
         setError(errorMessage);
-        setRouteData(null);
         return null;
       } finally {
         setIsCalculating(false);
@@ -83,7 +80,6 @@ export const useRouteCalculation = () => {
 
   return {
     calculateRoute,
-    routeData,
     isCalculating,
     error,
   };

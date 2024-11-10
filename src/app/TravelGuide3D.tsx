@@ -7,28 +7,19 @@ import {
   Map3DCameraProps,
   Map3DClickEvent,
   PlaceSelector,
+  RouteDisplay,
+  TourControls,
   useCameraAnimation,
-  useRouteCalculation,
 } from "./map-3d";
 import { Map3DProvider } from "@/context/Map3DContext";
+import { RouteProvider, useRoute } from "@/context/RouteContext";
 
 const API_KEY =
   globalThis.GOOGLE_MAPS_API_KEY ??
   (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string);
 
-type LatLngLiteral = {
-  lat: number;
-  lng: number;
-};
-
-type RouteCoordinates = {
-  origin: LatLngLiteral;
-  destination: LatLngLiteral;
-  waypoints?: LatLngLiteral[];
-};
-
 const INITIAL_VIEW_PROPS = {
-  center: { lat: 40.7079, lng: -74.0132, altitude: 1300 },
+  center: { lat: 51.5072, lng: 0.1276, altitude: 1300 },
   range: 5000,
   heading: 61,
   tilt: 69,
@@ -37,10 +28,7 @@ const INITIAL_VIEW_PROPS = {
 
 const Map3DExample = () => {
   const [viewProps, setViewProps] = useState(INITIAL_VIEW_PROPS);
-  const { calculateRoute, routeData, isCalculating } = useRouteCalculation();
-  const [selectedRoute, setSelectedRoute] = useState<RouteCoordinates | null>(
-    null,
-  );
+  const { isCalculating, routeData } = useRoute();
 
   const handleCameraChange = useCallback((props: Map3DCameraProps) => {
     setViewProps((oldProps) => ({ ...oldProps, ...props }));
@@ -69,51 +57,17 @@ const Map3DExample = () => {
     }
   }, []);
 
-  // Update the handler to use createCustomRoute
-  const handleCreateRoute = useCallback(
-    async (rout) => {
-      const route = {
-        origin: { lat: 40.7144, lng: -74.0208 }, // NY coordinates
-        destination: { lat: 40.7233, lng: -73.9989 }, // LA coordinates
-        waypoints: [
-          { lat: 40.7178, lng: -73.9855 }, // Brooklyn side
-        ],
-      };
-
-      // Create the route in state
-      setSelectedRoute(route);
-
-      // Calculate the route once
-      const routeData = await calculateRoute({
-        origin: route.origin,
-        destination: route.destination,
-        waypoints: route.waypoints,
-        travelMode: google.maps.TravelMode.DRIVING,
+  const handleStartTour = () => {
+    if (routeData?.overview_path) {
+      animateAlongPath(routeData.overview_path, {
+        duration: 100000,
+        cameraHeight: 150,
+        cameraDistance: 150,
+        tilt: 45,
+        smoothing: 5,
       });
-
-      if (routeData) {
-        // Start the animation using the calculated route data
-        animateAlongPath(routeData.overview_path, {
-          duration: 100000, // Slower for more realistic car movement
-          cameraHeight: 150, // Meters above the car
-          cameraDistance: 150, // Meters behind the car
-          tilt: 45, // More natural viewing angle
-          smoothing: 5, // Adjust for smoother/sharper turns
-        });
-      }
-    },
-    [calculateRoute, animateAlongPath],
-  );
-
-  const handleClearWaypoints = useCallback(() => {
-    if (selectedRoute) {
-      // handleCreateRoute({
-      //   origin: selectedRoute.origin,
-      //   destination: selectedRoute.destination,
-      //   waypoints: [],
-      // });
     }
-  }, []);
+  };
 
   return (
     <div className="relative w-full h-full">
@@ -122,15 +76,20 @@ const Map3DExample = () => {
         onCameraChange={handleCameraChange}
         onClick={handleMap3DClick}
         defaultLabelsDisabled
-      ></Map3D>
-      <PlaceSelector
-        onClearWaypoints={handleClearWaypoints}
-        animateAlongPath={animateAlongPath}
-        stopAnimation={stopAnimation}
-        togglePause={togglePause}
-        isAnimating={isAnimating}
-        isPaused={isPaused}
-      />
+      >
+        <RouteDisplay />
+      </Map3D>
+      <PlaceSelector />
+      {routeData && !isCalculating && (
+        <TourControls
+          isAnimating={isAnimating}
+          isPaused={isPaused}
+          routeData={routeData}
+          onStart={handleStartTour}
+          onTogglePause={togglePause}
+          onStop={stopAnimation}
+        />
+      )}
       <MiniMap camera3dProps={viewProps} onMapClick={handleMapClick}></MiniMap>
     </div>
   );
@@ -151,9 +110,11 @@ const TravelGuide3D = () => {
   return (
     <APIProvider apiKey={API_KEY} version={"alpha"}>
       <Map3DProvider>
-        <div className="w-screen h-screen">
-          <Map3DExample />
-        </div>
+        <RouteProvider>
+          <div className="w-screen h-screen">
+            <Map3DExample />
+          </div>
+        </RouteProvider>
       </Map3DProvider>
     </APIProvider>
   );

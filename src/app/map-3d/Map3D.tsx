@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { useMap3DCameraEvents } from "./hooks/useMap3DCameraEvents";
-import { useDeepCompareEffect } from "../hooks/utilityHooks";
+import { useDeepCompareEffect } from "../../hooks/utilityHooks";
 import "./types/map3dTypes";
 import {
   Map3DClickEvent,
