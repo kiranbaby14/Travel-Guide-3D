@@ -31,7 +31,7 @@ const PlaceSelector = () => {
           altitude: 1000,
         },
         tilt: 45,
-        range: 2000,
+        range: 6000,
       },
       durationMillis: 5000,
     });

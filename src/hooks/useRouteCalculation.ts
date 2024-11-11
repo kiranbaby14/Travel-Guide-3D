@@ -16,7 +16,7 @@ type RouteData = {
   duration: string;
 };
 
-export const useRouteCalculation = () => {
+const useRouteCalculation = () => {
   const routesLibrary = useMapsLibrary("routes");
   const [routeService, setRouteService] =
     useState<google.maps.DirectionsService | null>(null);
@@ -84,3 +84,5 @@ export const useRouteCalculation = () => {
     error,
   };
 };
+
+export { useRouteCalculation };

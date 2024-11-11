@@ -1,6 +1,10 @@
 "use client";
-import React, { useCallback, useState } from "react";
-import { APIProvider, MapMouseEvent } from "@vis.gl/react-google-maps";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  APIProvider,
+  MapMouseEvent,
+  useMapsLibrary,
+} from "@vis.gl/react-google-maps";
 import { MiniMap } from "./minimap";
 import {
   Map3D,
@@ -11,8 +15,9 @@ import {
   TourControls,
   useCameraAnimation,
 } from "./map-3d";
-import { Map3DProvider } from "@/context/Map3DContext";
+import { Map3DProvider, useMap3D } from "@/context/Map3DContext";
 import { RouteProvider, useRoute } from "@/context/RouteContext";
+import { RouteNarrator } from "./map-3d/components/RouteNarrator ";
 
 const API_KEY =
   globalThis.GOOGLE_MAPS_API_KEY ??
@@ -28,10 +33,28 @@ const INITIAL_VIEW_PROPS = {
 
 const Map3DExample = () => {
   const [viewProps, setViewProps] = useState(INITIAL_VIEW_PROPS);
+  const placesLibrary = useMapsLibrary("places");
+  const { map3DElement } = useMap3D();
   const { isCalculating, routeData } = useRoute();
+  const [currentPosition, setCurrentPosition] =
+    useState<google.maps.LatLngLiteral | null>(null);
+
+  const placesService = useMemo(() => {
+    if (placesLibrary && map3DElement) {
+      return new placesLibrary.PlacesService(map3DElement);
+    }
+    return null;
+  }, [placesLibrary, map3DElement]);
 
   const handleCameraChange = useCallback((props: Map3DCameraProps) => {
     setViewProps((oldProps) => ({ ...oldProps, ...props }));
+    // Update current position based on camera center
+    if (props.center) {
+      setCurrentPosition({
+        lat: props.center.lat,
+        lng: props.center.lng,
+      });
+    }
   }, []);
 
   const {
@@ -59,6 +82,13 @@ const Map3DExample = () => {
 
   const handleStartTour = () => {
     if (routeData?.overview_path) {
+      // Set initial position
+      if (routeData.overview_path[0]) {
+        setCurrentPosition({
+          lat: routeData.overview_path[0].lat(),
+          lng: routeData.overview_path[0].lng(),
+        });
+      }
       animateAlongPath(routeData.overview_path, {
         duration: 100000,
         cameraHeight: 150,
@@ -88,6 +118,14 @@ const Map3DExample = () => {
           onStart={handleStartTour}
           onTogglePause={togglePause}
           onStop={stopAnimation}
+        />
+      )}
+      {/* Add RouteNarrator when animation is active */}
+      {isAnimating && currentPosition && routeData && placesService && (
+        <RouteNarrator
+          currentPosition={currentPosition}
+          routeData={routeData}
+          placesService={placesService}
         />
       )}
       <MiniMap camera3dProps={viewProps} onMapClick={handleMapClick}></MiniMap>
