@@ -33,7 +33,7 @@ const PlaceSelector = () => {
         tilt: 45,
         range: 6000,
       },
-      durationMillis: 5000,
+      durationMillis: 1000,
     });
 
     switch (type) {

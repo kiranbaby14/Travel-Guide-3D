@@ -22,7 +22,7 @@ export const Polygon3D: React.FC<Polygon3DProps> = ({
   fillColor = "rgba(255, 0, 0, 0.5)",
   strokeColor = "#0000ff",
   strokeWidth = 2,
-  extruded = false,
+  extruded = true,
   onClick,
 }) => {
   const { map3DElement, maps3d } = useMap3D();
