@@ -31,12 +31,14 @@ const INITIAL_VIEW_PROPS = {
 };
 
 const Map3DExample = () => {
-  const [viewProps, setViewProps] = useState(INITIAL_VIEW_PROPS);
   const placesLibrary = useMapsLibrary("places");
   const { map3DElement } = useMap3D();
   const { isCalculating, routeData } = useRoute();
+  const [viewProps, setViewProps] = useState(INITIAL_VIEW_PROPS);
   const [currentPosition, setCurrentPosition] =
     useState<google.maps.LatLngLiteral | null>(null);
+  const [isLoadingPOIs, setIsLoadingPOIs] = useState(false);
+  const [isTourStarted, setIsTourStarted] = useState(false);
 
   const placesService = useMemo(() => {
     if (placesLibrary && map3DElement) {
@@ -70,23 +72,33 @@ const Map3DExample = () => {
     setViewProps((p) => ({ ...p, center: { lat, lng, altitude: 0 } }));
   }, []);
 
+  const startTourAnimation = useCallback(() => {
+    if (!routeData?.overview_path?.[0]) return;
+
+    setCurrentPosition({
+      lat: routeData.overview_path[0].lat(),
+      lng: routeData.overview_path[0].lng(),
+    });
+
+    animateAlongPath(routeData.overview_path, {
+      duration: 100000,
+      cameraHeight: 150,
+      cameraDistance: 150,
+      tilt: 45,
+      smoothing: 5,
+    });
+  }, [routeData, setCurrentPosition, animateAlongPath]);
+
   const handleStartTour = () => {
     if (routeData?.overview_path) {
-      // Set initial position
-      if (routeData.overview_path[0]) {
-        setCurrentPosition({
-          lat: routeData.overview_path[0].lat(),
-          lng: routeData.overview_path[0].lng(),
-        });
-      }
-      animateAlongPath(routeData.overview_path, {
-        duration: 100000,
-        cameraHeight: 150,
-        cameraDistance: 150,
-        tilt: 45,
-        smoothing: 5,
-      });
+      setIsLoadingPOIs(true);
+      setIsTourStarted(true);
     }
+  };
+
+  const handleStopTour = () => {
+    stopAnimation();
+    setIsTourStarted(false);
   };
 
   return (
@@ -106,15 +118,30 @@ const Map3DExample = () => {
           routeData={routeData}
           onStart={handleStartTour}
           onTogglePause={togglePause}
-          onStop={stopAnimation}
+          onStop={handleStopTour}
         />
       )}
+      {isLoadingPOIs && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-md text-center">
+            <h3 className="text-xl font-semibold mb-2">Preparing Your Tour</h3>
+            <p className="text-gray-600">
+              Finding interesting places along your route...
+            </p>
+            <div className="mt-4 animate-pulse h-2 bg-blue-200 rounded"></div>
+          </div>
+        </div>
+      )}
       {/* Add RouteNarrator when animation is active */}
-      {isAnimating && currentPosition && routeData && placesService && (
+      {isTourStarted && routeData && placesService && (
         <RouteNarrator
-          currentPosition={currentPosition}
+          currentPosition={currentPosition || routeData.overview_path[0]}
           routeData={routeData}
           placesService={placesService}
+          onLoadComplete={() => {
+            setIsLoadingPOIs(false);
+            startTourAnimation();
+          }}
         />
       )}
       <MiniMap camera3dProps={viewProps} onMapClick={handleMapClick}></MiniMap>

@@ -8,14 +8,15 @@ interface RouteNarratorProps {
   currentPosition: google.maps.LatLngLiteral;
   routeData: RouteData;
   placesService: google.maps.places.PlacesService;
+  onLoadComplete: () => void;
 }
 
 const RouteNarrator: React.FC<RouteNarratorProps> = ({
   currentPosition,
   routeData,
   placesService,
+  onLoadComplete,
 }) => {
-  const [isInitializing, setIsInitializing] = useState(true);
   const [lastAnnouncedId, setLastAnnouncedId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<string>("");
   const [selectedPOI, setSelectedPOI] = useState<PointOfInterest | null>(null);
@@ -25,8 +26,10 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
   );
 
   useEffect(() => {
+    console.log(isLoading);
+
     if (!isLoading && pointsOfInterest.length > 0) {
-      setIsInitializing(false);
+      onLoadComplete();
     }
   }, [isLoading, pointsOfInterest]);
 
@@ -57,8 +60,7 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
   };
 
   useEffect(() => {
-    if (isInitializing || !currentPosition || pointsOfInterest.length === 0)
-      return;
+    if (isLoading || !currentPosition || pointsOfInterest.length === 0) return;
 
     const nearbyPOI = pointsOfInterest.find((poi) => {
       if (poi.id === lastAnnouncedId) return false;
@@ -105,21 +107,7 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [currentPosition, pointsOfInterest, isInitializing, lastAnnouncedId]);
-
-  if (isInitializing) {
-    return (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg p-6 max-w-md text-center">
-          <h3 className="text-xl font-semibold mb-2">Preparing Your Tour</h3>
-          <p className="text-gray-600">
-            Finding interesting places along your route...
-          </p>
-          <div className="mt-4 animate-pulse h-2 bg-blue-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
+  }, [currentPosition, pointsOfInterest, isLoading, lastAnnouncedId]);
 
   return (
     <>

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { RouteData, PlaceInsights, PointOfInterest } from "@/types";
-import { useMapsLibrary } from "@vis.gl/react-google-maps";
 
 // lib/routeUtils.ts
 export function samplePathPoints(
@@ -62,7 +61,6 @@ export async function getPlaceInsights(
         "accessibilityOptions",
       ],
     });
-    console.log(details.priceLevel, details.editorialSummary);
 
     return {
       formattedAddress: details.formattedAddress || "",
@@ -223,7 +221,7 @@ export const useRoutePointsOfInterest = (
     };
 
     findPointsOfInterest();
-  }, [routeData, placesService]);
+  }, []);
 
   return { pointsOfInterest, isLoading, error };
 };
