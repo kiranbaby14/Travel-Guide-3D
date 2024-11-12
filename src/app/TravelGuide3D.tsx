@@ -9,7 +9,6 @@ import { MiniMap } from "./minimap";
 import {
   Map3D,
   Map3DCameraProps,
-  Map3DClickEvent,
   PlaceSelector,
   RouteDisplay,
   TourControls,
@@ -71,15 +70,6 @@ const Map3DExample = () => {
     setViewProps((p) => ({ ...p, center: { lat, lng, altitude: 0 } }));
   }, []);
 
-  const handleMap3DClick = useCallback(async (event: Map3DClickEvent) => {
-    console.log("Map clicked:", event.position, event.placeId);
-    if (event.placeId) {
-      const place = await event.fetchPlace();
-      await place.fetchFields({ fields: ["*"] });
-      // Display place details or do something else.
-    }
-  }, []);
-
   const handleStartTour = () => {
     if (routeData?.overview_path) {
       // Set initial position
@@ -104,7 +94,6 @@ const Map3DExample = () => {
       <Map3D
         {...viewProps}
         onCameraChange={handleCameraChange}
-        onClick={handleMap3DClick}
         defaultLabelsDisabled
       >
         <RouteDisplay />

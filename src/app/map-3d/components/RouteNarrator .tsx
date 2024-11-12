@@ -1,14 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useRoutePointsOfInterest } from "@/hooks";
 import { Polygon3D } from "./Polygon3D";
-
-type RouteData = {
-  routeCoordinates: google.maps.LatLngLiteral[];
-  overview_path: google.maps.LatLng[];
-  bounds: google.maps.LatLngBounds;
-  distance: string;
-  duration: string;
-};
+import { Accessibility, Clock, Star } from "lucide-react";
+import { RouteData, PointOfInterest } from "@/types";
 
 interface RouteNarratorProps {
   currentPosition: google.maps.LatLngLiteral;
@@ -21,20 +15,27 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
   routeData,
   placesService,
 }) => {
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [lastAnnouncedId, setLastAnnouncedId] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState<string>("");
+  const [selectedPOI, setSelectedPOI] = useState<PointOfInterest | null>(null);
   const { pointsOfInterest, isLoading } = useRoutePointsOfInterest(
     routeData,
     placesService,
   );
-  const [lastAnnouncedId, setLastAnnouncedId] = useState<string | null>(null);
-  const [announcement, setAnnouncement] = useState<string>("");
 
-  // Create circular polygon coordinates for each POI
-  const createCircleCoordinates = (
+  useEffect(() => {
+    if (!isLoading && pointsOfInterest.length > 0) {
+      setIsInitializing(false);
+    }
+  }, [isLoading, pointsOfInterest]);
+
+  const createPolygonCoordinates = (
     center: google.maps.LatLngLiteral,
     radius: number = 50,
   ): google.maps.LatLngAltitudeLiteral[] => {
     const coordinates: google.maps.LatLngAltitudeLiteral[] = [];
-    const numPoints = 5; // Number of points to create circle
+    const numPoints = 5;
 
     for (let i = 0; i < numPoints; i++) {
       const angle = (i / numPoints) * 360;
@@ -47,19 +48,18 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
       coordinates.push({
         lat,
         lng,
-        altitude: 100, // Height above ground in meters
+        altitude: 100,
       });
     }
 
-    // Close the circle
     coordinates.push(coordinates[0]);
     return coordinates;
   };
 
   useEffect(() => {
-    if (isLoading || !currentPosition || pointsOfInterest.length === 0) return;
+    if (isInitializing || !currentPosition || pointsOfInterest.length === 0)
+      return;
 
-    // Find the nearest unannounced POI within 200 meters
     const nearbyPOI = pointsOfInterest.find((poi) => {
       if (poi.id === lastAnnouncedId) return false;
 
@@ -72,39 +72,141 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
     });
 
     if (nearbyPOI) {
-      const message = `Passing by: ${nearbyPOI.name}`;
+      // Create a more detailed announcement using the insights
+      let message = `Approaching ${nearbyPOI.name}. `;
+
+      if (nearbyPOI.insights.editorialSummary?.text) {
+        message += nearbyPOI.insights.editorialSummary.text + " ";
+      }
+
+      if (nearbyPOI.insights.regularOpeningHours) {
+        message += nearbyPOI.insights.regularOpeningHours.openNow
+          ? "Currently open. "
+          : "Currently closed. ";
+      }
+
+      if (nearbyPOI.insights.rating) {
+        message += `Rated ${nearbyPOI.insights.rating} stars. `;
+      }
+
       setAnnouncement(message);
       setLastAnnouncedId(nearbyPOI.id);
+      setSelectedPOI(nearbyPOI);
 
       if ("speechSynthesis" in window) {
         const utterance = new SpeechSynthesisUtterance(message);
         window.speechSynthesis.speak(utterance);
       }
+
+      const timer = setTimeout(() => {
+        setAnnouncement("");
+        setSelectedPOI(null);
+      }, 8000);
+
+      return () => clearTimeout(timer);
     }
-  }, [currentPosition, pointsOfInterest, isLoading, lastAnnouncedId]);
+  }, [currentPosition, pointsOfInterest, isInitializing, lastAnnouncedId]);
+
+  if (isInitializing) {
+    return (
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <div className="bg-white rounded-lg p-6 max-w-md text-center">
+          <h3 className="text-xl font-semibold mb-2">Preparing Your Tour</h3>
+          <p className="text-gray-600">
+            Finding interesting places along your route...
+          </p>
+          <div className="mt-4 animate-pulse h-2 bg-blue-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      {/* Render polygons for each POI */}
       {pointsOfInterest.map((poi) => {
         const isNearby = poi.id === lastAnnouncedId;
         return (
           <Polygon3D
             key={poi.id}
-            outerCoordinates={createCircleCoordinates(poi.location)}
+            outerCoordinates={createPolygonCoordinates(poi.location)}
             onClick={() => {
-              setAnnouncement(`Selected: ${poi.name}`);
+              setSelectedPOI(poi);
+              setAnnouncement(`Point of Interest: ${poi.name}`);
+              setTimeout(() => {
+                setAnnouncement("");
+                setSelectedPOI(null);
+              }, 8000);
             }}
           />
         );
       })}
 
-      {/* Announcement UI */}
-      {(announcement || isLoading) && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-black/75 text-white px-6 py-3 rounded-full">
-          <div className="text-lg font-medium">
-            {isLoading ? "Loading points of interest..." : announcement}
+      {/* Enhanced POI Detail Card */}
+      {selectedPOI && (
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-lg shadow-xl p-4 max-w-md w-full mx-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-xl font-semibold">{selectedPOI.name}</h3>
+              <p className="text-sm text-gray-600">
+                {selectedPOI.insights.formattedAddress}
+              </p>
+            </div>
+            {selectedPOI.insights.rating && (
+              <div className="flex items-center gap-1">
+                <Star className="w-4 h-4 text-yellow-400" />
+                <span>{selectedPOI.insights.rating}</span>
+                <span className="text-sm text-gray-500">
+                  ({selectedPOI.insights.userRatingCount})
+                </span>
+              </div>
+            )}
           </div>
+
+          {selectedPOI.insights.editorialSummary && (
+            <p className="mt-2 text-sm">
+              {selectedPOI.insights.editorialSummary.text}
+            </p>
+          )}
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {selectedPOI.insights.regularOpeningHours && (
+              <span className="inline-flex items-center gap-1 text-sm px-2 py-1 bg-gray-100 rounded">
+                <Clock className="w-4 h-4" />
+                {selectedPOI.insights.regularOpeningHours.openNow
+                  ? "Open"
+                  : "Closed"}
+              </span>
+            )}
+
+            {selectedPOI.insights.accessibilityOptions
+              ?.wheelchairAccessibleEntrance && (
+              <span className="inline-flex items-center gap-1 text-sm px-2 py-1 bg-gray-100 rounded">
+                <Accessibility className="w-4 h-4" />
+                Accessible
+              </span>
+            )}
+          </div>
+
+          {selectedPOI.insights.photos &&
+            selectedPOI.insights.photos.length > 0 && (
+              <div className="mt-3 flex gap-2 overflow-x-auto">
+                {selectedPOI.insights.photos.slice(0, 3).map((photo, index) => (
+                  <img
+                    key={index}
+                    src={photo.name}
+                    alt={`${selectedPOI.name} photo ${index + 1}`}
+                    className="w-32 h-32 object-cover rounded"
+                  />
+                ))}
+              </div>
+            )}
+        </div>
+      )}
+
+      {/* Simple announcement for non-selected POIs */}
+      {announcement && !selectedPOI && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-black/75 text-white px-6 py-3 rounded-full transition-opacity duration-300">
+          <div className="text-lg font-medium">{announcement}</div>
         </div>
       )}
     </>
