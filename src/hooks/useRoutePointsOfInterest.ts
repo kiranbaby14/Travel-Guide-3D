@@ -5,14 +5,25 @@ import { RouteData, PlaceInsights, PointOfInterest } from "@/types";
 export function samplePathPoints(
   coordinates: google.maps.LatLngLiteral[],
   intervalMeters: number,
+  exclusionDistanceFromEnds: number = 500, // Skip points within 500 meters of start/end
 ): google.maps.LatLngLiteral[] {
   const sampledPoints: google.maps.LatLngLiteral[] = [];
   let distanceAccumulator = 0;
+  let totalRouteDistance = 0;
+
+  // Calculate total route distance
+  for (let i = 0; i < coordinates.length - 1; i++) {
+    const start = coordinates[i];
+    const end = coordinates[i + 1];
+    totalRouteDistance += google.maps.geometry.spherical.computeDistanceBetween(
+      new google.maps.LatLng(start),
+      new google.maps.LatLng(end),
+    );
+  }
 
   for (let i = 0; i < coordinates.length - 1; i++) {
     const start = coordinates[i];
     const end = coordinates[i + 1];
-
     const segmentDistance =
       google.maps.geometry.spherical.computeDistanceBetween(
         new google.maps.LatLng(start),
@@ -29,7 +40,21 @@ export function samplePathPoints(
         )
         .toJSON();
 
-      sampledPoints.push(interpolated);
+      const distanceAlongRoute =
+        distanceAccumulator +
+        google.maps.geometry.spherical.computeDistanceBetween(
+          new google.maps.LatLng(coordinates[0]),
+          new google.maps.LatLng(interpolated),
+        );
+
+      // Skip points near start and end
+      if (
+        distanceAlongRoute > exclusionDistanceFromEnds &&
+        distanceAlongRoute < totalRouteDistance - exclusionDistanceFromEnds
+      ) {
+        sampledPoints.push(interpolated);
+      }
+
       distanceAccumulator += intervalMeters;
     }
 
@@ -199,7 +224,8 @@ export function selectSpacedPoints(
 export const useRoutePointsOfInterest = (
   routeData: RouteData | null,
   placesService: google.maps.places.PlacesService | null,
-  minDistanceBetweenPOIs: number = 300, // Allow customizing the minimum distance
+  minDistanceBetweenPOIs: number = 500, // Allow customizing the minimum distance
+  exclusionDistanceFromEnds: number = 200,
 ) => {
   const [pointsOfInterest, setPointsOfInterest] = useState<PointOfInterest[]>(
     [],
@@ -216,7 +242,11 @@ export const useRoutePointsOfInterest = (
       const points: PointOfInterest[] = [];
 
       try {
-        const sampledPoints = samplePathPoints(routeData.routeCoordinates, 400);
+        const sampledPoints = samplePathPoints(
+          routeData.routeCoordinates,
+          400,
+          exclusionDistanceFromEnds,
+        );
         let totalDistance = 0;
 
         for (const [index, point] of sampledPoints.entries()) {
