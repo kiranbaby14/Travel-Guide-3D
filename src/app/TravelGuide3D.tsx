@@ -64,7 +64,11 @@ const Map3DExample = () => {
     isPaused,
     stopAnimation,
     togglePause,
-  } = useCameraAnimation(handleCameraChange);
+  } = useCameraAnimation(handleCameraChange, {
+    onAnimationEnd: () => {
+      setIsTourStarted(false);
+    },
+  });
 
   const handleMapClick = useCallback((ev: MapMouseEvent) => {
     if (!ev.detail.latLng) return;
@@ -128,7 +132,7 @@ const Map3DExample = () => {
             <p className="text-gray-600">
               Finding interesting places along your route...
             </p>
-            <div className="mt-4 animate-pulse h-2 bg-blue-200 rounded"></div>
+            <div className="mt-4 animate-pulse h-2 bg-blue-400 rounded"></div>
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@ import { useRoute } from "@/context/RouteContext";
 
 const RouteDisplay = () => {
   const { origin, destination, waypoints, routeData } = useRoute();
+
   return (
     <>
       {origin && (

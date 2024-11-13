@@ -47,7 +47,6 @@ export async function getPlaceInsights(
     const Place = google.maps.places.Place;
     const place = new Place({ id: placeId });
 
-    // Use correct camelCase field names that match the Place class properties
     const { place: details } = await place.fetchFields({
       fields: [
         "formattedAddress",
@@ -99,73 +98,100 @@ export async function findPlacesNearPoint(
   point: google.maps.LatLngLiteral,
   distanceAlongRoute: number,
 ): Promise<PointOfInterest[]> {
-  const landmarkKeywords = [
-    "landmark",
-    "monument",
-    "museum",
-    "park",
-    "stadium",
-    "mall",
-    "tourist attraction",
-  ];
+  return new Promise<PointOfInterest[]>((resolve) => {
+    const request: google.maps.places.PlaceSearchRequest = {
+      location: new google.maps.LatLng(point),
+      radius: 500,
+      type: "tourist_attraction",
+      rankBy: google.maps.places.RankBy.PROMINENCE,
+    };
 
-  const searchPromises = landmarkKeywords.map(
-    (keyword) =>
-      new Promise<PointOfInterest[]>(async (resolve) => {
-        const request: google.maps.places.FindPlaceFromQueryRequest = {
-          query: keyword,
-          fields: ["place_id", "name", "geometry"],
-          locationBias: point,
-        };
+    placesService.nearbySearch(request, async (results, status) => {
+      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+        try {
+          const poisWithInsights = await Promise.all(
+            results.map(async (place) => {
+              const placeLocation = {
+                lat: place.geometry!.location!.lat(),
+                lng: place.geometry!.location!.lng(),
+              };
 
-        placesService.findPlaceFromQuery(request, async (results, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-            try {
-              const poisWithInsights = await Promise.all(
-                results.map(async (place) => {
-                  const insights = await getPlaceInsights(
-                    placesService,
-                    place.place_id!,
-                  );
-                  return {
-                    id: place.place_id!,
-                    name: place.name!,
-                    location: {
-                      lat: place.geometry!.location!.lat(),
-                      lng: place.geometry!.location!.lng(),
-                    },
-                    distanceAlongRoute,
-                    insights,
-                  };
-                }),
-              );
-              resolve(poisWithInsights);
-            } catch (error) {
-              console.error("Error getting place insights:", error);
-              resolve([]);
-            }
-          } else {
-            resolve([]);
-          }
-        });
-      }),
-  );
+              const distanceFromPoint =
+                google.maps.geometry.spherical.computeDistanceBetween(
+                  new google.maps.LatLng(point),
+                  new google.maps.LatLng(placeLocation),
+                );
 
-  const results = await Promise.all(searchPromises);
-  return results.flat();
+              if (distanceFromPoint <= 500) {
+                const insights = await getPlaceInsights(
+                  placesService,
+                  place.place_id!,
+                );
+
+                return {
+                  id: place.place_id!,
+                  name: place.name!,
+                  location: placeLocation,
+                  distanceAlongRoute,
+                  distanceFromRoute: distanceFromPoint,
+                  rating: place.rating,
+                  placeType: place.types?.[0] || "tourist_attraction",
+                  insights,
+                };
+              }
+              return null;
+            }),
+          );
+
+          resolve(
+            poisWithInsights.filter(
+              (poi): poi is PointOfInterest => poi !== null,
+            ),
+          );
+        } catch (error) {
+          console.error("Error getting place insights:", error);
+          resolve([]);
+        }
+      } else {
+        resolve([]);
+      }
+    });
+  });
 }
 
-export function deduplicatePoints(
+export function selectSpacedPoints(
   points: PointOfInterest[],
+  minDistanceMeters: number = 300,
 ): PointOfInterest[] {
-  const uniquePoints = new Map<string, PointOfInterest>();
-  points.forEach((point) => {
-    if (!uniquePoints.has(point.id)) {
-      uniquePoints.set(point.id, point);
+  // Sort by rating and distance from route to prioritize better-rated places
+  const sortedPoints = [...points].sort((a, b) => {
+    // Prioritize rating first
+    const ratingDiff = (b.rating || 0) - (a.rating || 0);
+    if (Math.abs(ratingDiff) > 0.5) {
+      // Only use rating if difference is significant
+      return ratingDiff;
     }
+    // Then consider distance from route
+    return (a.distanceFromRoute || 0) - (b.distanceFromRoute || 0);
   });
 
-  return Array.from(uniquePoints.values()).sort(
+  const selectedPoints: PointOfInterest[] = [];
+
+  for (const point of sortedPoints) {
+    // Check if this point is far enough from all selected points
+    const isFarEnough = selectedPoints.every((selectedPoint) => {
+      const distanceBetweenPoints = Math.abs(
+        point.distanceAlongRoute - selectedPoint.distanceAlongRoute,
+      );
+      return distanceBetweenPoints >= minDistanceMeters;
+    });
+
+    if (isFarEnough) {
+      selectedPoints.push(point);
+    }
+  }
+
+  return selectedPoints.sort(
     (a, b) => a.distanceAlongRoute - b.distanceAlongRoute,
   );
 }
@@ -173,6 +199,7 @@ export function deduplicatePoints(
 export const useRoutePointsOfInterest = (
   routeData: RouteData | null,
   placesService: google.maps.places.PlacesService | null,
+  minDistanceBetweenPOIs: number = 300, // Allow customizing the minimum distance
 ) => {
   const [pointsOfInterest, setPointsOfInterest] = useState<PointOfInterest[]>(
     [],
@@ -189,10 +216,10 @@ export const useRoutePointsOfInterest = (
       const points: PointOfInterest[] = [];
 
       try {
-        const sampledPoints = samplePathPoints(routeData.routeCoordinates, 200);
+        const sampledPoints = samplePathPoints(routeData.routeCoordinates, 400);
         let totalDistance = 0;
 
-        for (const point of sampledPoints) {
+        for (const [index, point] of sampledPoints.entries()) {
           const nearbyPlaces = await findPlacesNearPoint(
             placesService,
             point,
@@ -200,8 +227,8 @@ export const useRoutePointsOfInterest = (
           );
           points.push(...nearbyPlaces);
 
-          if (sampledPoints.indexOf(point) < sampledPoints.length - 1) {
-            const nextPoint = sampledPoints[sampledPoints.indexOf(point) + 1];
+          if (index < sampledPoints.length - 1) {
+            const nextPoint = sampledPoints[index + 1];
             totalDistance +=
               google.maps.geometry.spherical.computeDistanceBetween(
                 new google.maps.LatLng(point),
@@ -210,8 +237,10 @@ export const useRoutePointsOfInterest = (
           }
         }
 
-        const uniquePoints = deduplicatePoints(points);
-        setPointsOfInterest(uniquePoints);
+        // Use the new spacing function instead of simple deduplication
+        const spacedPoints = selectSpacedPoints(points, minDistanceBetweenPOIs);
+
+        setPointsOfInterest(spacedPoints);
       } catch (error) {
         console.error("Error finding points of interest:", error);
         setError("Failed to load points of interest");
@@ -221,7 +250,7 @@ export const useRoutePointsOfInterest = (
     };
 
     findPointsOfInterest();
-  }, []);
+  }, [routeData]);
 
   return { pointsOfInterest, isLoading, error };
 };

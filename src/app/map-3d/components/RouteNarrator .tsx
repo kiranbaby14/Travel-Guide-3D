@@ -26,8 +26,6 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
   );
 
   useEffect(() => {
-    console.log(isLoading);
-
     if (!isLoading && pointsOfInterest.length > 0) {
       onLoadComplete();
     }
@@ -111,11 +109,11 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
 
   return (
     <>
-      {pointsOfInterest.map((poi) => {
+      {pointsOfInterest.map((poi, index) => {
         const isNearby = poi.id === lastAnnouncedId;
         return (
           <Polygon3D
-            key={poi.id}
+            key={`${poi.id}-${index}`}
             outerCoordinates={createPolygonCoordinates(poi.location)}
             onClick={() => {
               setSelectedPOI(poi);
@@ -129,7 +127,7 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
         );
       })}
 
-      {/* Enhanced POI Detail Card */}
+      {/* POI Detail Card */}
       {selectedPOI && (
         <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-lg shadow-xl p-4 max-w-md w-full mx-4">
           <div className="flex justify-between items-start">

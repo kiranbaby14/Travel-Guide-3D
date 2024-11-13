@@ -15,8 +15,13 @@ interface AnimationState {
   tilt: number;
 }
 
+interface CameraAnimationOptions {
+  onAnimationEnd?: () => void;
+}
+
 export const useCameraAnimation = (
   onCameraChange: (props: Map3DCameraProps) => void,
+  options?: CameraAnimationOptions,
 ) => {
   const animationRef = useRef<number>();
   const [isAnimating, setIsAnimating] = useState(false);
@@ -223,8 +228,8 @@ export const useCameraAnimation = (
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
       } else {
-        setIsAnimating(false);
-        setIsPaused(false);
+        stopAnimation();
+        options?.onAnimationEnd?.();
       }
     };
 
