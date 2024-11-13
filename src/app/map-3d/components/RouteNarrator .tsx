@@ -9,6 +9,7 @@ interface RouteNarratorProps {
   routeData: RouteData;
   placesService: google.maps.places.PlacesService;
   onLoadComplete: () => void;
+  onMountNeeded: () => void; // Add this prop to signal when route should remount
 }
 
 const RouteNarrator: React.FC<RouteNarratorProps> = ({
@@ -16,6 +17,7 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
   routeData,
   placesService,
   onLoadComplete,
+  onMountNeeded,
 }) => {
   const [lastAnnouncedId, setLastAnnouncedId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<string>("");
@@ -24,6 +26,11 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
     routeData,
     placesService,
   );
+
+  // Request remount when search starts
+  useEffect(() => {
+    onMountNeeded();
+  }, [isLoading]);
 
   useEffect(() => {
     if (!isLoading && pointsOfInterest.length > 0) {

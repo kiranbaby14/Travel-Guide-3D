@@ -39,6 +39,7 @@ const Map3DExample = () => {
     useState<google.maps.LatLngLiteral | null>(null);
   const [isLoadingPOIs, setIsLoadingPOIs] = useState(false);
   const [isTourStarted, setIsTourStarted] = useState(false);
+  const [routeKey, setRouteKey] = useState(0); // Add this for force remount
 
   const placesService = useMemo(() => {
     if (placesLibrary && map3DElement) {
@@ -112,7 +113,7 @@ const Map3DExample = () => {
         onCameraChange={handleCameraChange}
         defaultLabelsDisabled
       >
-        <RouteDisplay />
+        <RouteDisplay key={routeKey} />
       </Map3D>
       <PlaceSelector />
       {routeData && !isCalculating && (
@@ -146,6 +147,7 @@ const Map3DExample = () => {
             setIsLoadingPOIs(false);
             startTourAnimation();
           }}
+          onMountNeeded={() => setRouteKey((prev) => prev + 1)}
         />
       )}
       <MiniMap camera3dProps={viewProps} onMapClick={handleMapClick}></MiniMap>
