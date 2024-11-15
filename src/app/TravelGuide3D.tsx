@@ -10,7 +10,7 @@ import {
   Map3D,
   Map3DCameraProps,
   PlaceSelector,
-  RouteDisplay,
+  RouteDisplay3D,
   TourControls,
   useCameraAnimation,
 } from "./map-3d";
@@ -34,6 +34,7 @@ const Map3DExample = () => {
   const placesLibrary = useMapsLibrary("places");
   const { map3DElement } = useMap3D();
   const { isCalculating, routeData } = useRoute();
+
   const [viewProps, setViewProps] = useState(INITIAL_VIEW_PROPS);
   const [currentPosition, setCurrentPosition] =
     useState<google.maps.LatLngLiteral | null>(null);
@@ -113,7 +114,7 @@ const Map3DExample = () => {
         onCameraChange={handleCameraChange}
         defaultLabelsDisabled
       >
-        <RouteDisplay key={routeKey} />
+        <RouteDisplay3D key={routeKey} />
       </Map3D>
       <PlaceSelector isTourActive={isTourStarted} />
       {routeData && !isCalculating && (

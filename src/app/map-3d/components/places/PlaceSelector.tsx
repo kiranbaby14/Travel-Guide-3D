@@ -79,7 +79,7 @@ const PlaceSelector: React.FC<PlaceSelectorProps> = ({
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <MapPin
-              className={`h-4 w-4 text-red-500 flex-shrink-0 ${!origin ? "opacity-30" : ""}`}
+              className={`h-4 w-4 text-blue-500 flex-shrink-0 ${!origin ? "opacity-30" : ""}`}
             />
             <PlaceInput
               placeholder="Enter starting point"
@@ -94,7 +94,7 @@ const PlaceSelector: React.FC<PlaceSelectorProps> = ({
 
           <div className="flex items-center gap-2">
             <MapPin
-              className={`h-4 w-4 text-blue-500 flex-shrink-0 ${!destination ? "opacity-30" : ""}`}
+              className={`h-4 w-4 text-red-500 flex-shrink-0 ${!destination ? "opacity-30" : ""}`}
             />
             <PlaceInput
               placeholder="Enter destination"

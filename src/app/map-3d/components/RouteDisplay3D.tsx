@@ -3,7 +3,7 @@ import { Marker3D } from "./Marker3D";
 import { Polyline3D } from "./Polyline3D";
 import { useRoute } from "@/context/RouteContext";
 
-const RouteDisplay = () => {
+const RouteDisplay3D = () => {
   const { origin, destination, waypoints, routeData } = useRoute();
 
   return (
@@ -47,4 +47,4 @@ const RouteDisplay = () => {
   );
 };
 
-export { RouteDisplay };
+export { RouteDisplay3D };
