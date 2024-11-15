@@ -5,10 +5,11 @@ interface WaypointItemProps {
   waypoint: Waypoint;
   index: number;
   onRemove: (id: string) => void;
+  disabled?: boolean;
 }
 
 const WaypointItem: React.FC<WaypointItemProps> = React.memo(
-  ({ waypoint, index, onRemove }) => (
+  ({ waypoint, index, onRemove, disabled = false }) => (
     <div className="text-sm flex justify-between items-center">
       <span>
         Stop {index + 1}: ({waypoint.location.lat.toFixed(4)},{" "}
@@ -18,6 +19,7 @@ const WaypointItem: React.FC<WaypointItemProps> = React.memo(
         onClick={() => onRemove(waypoint.id)}
         className="ml-2 text-red-600 hover:text-red-800"
         aria-label={`Remove stop ${index + 1}`}
+        disabled={disabled}
       >
         ×
       </button>

@@ -6,10 +6,17 @@ interface PlaceInputProps {
   onPlaceSelect: (location: Location) => void;
   placesLibrary: google.maps.PlacesLibrary;
   map3DElement: google.maps.maps3d.Map3DElement;
+  disabled?: boolean;
 }
 
 const PlaceInput: React.FC<PlaceInputProps> = React.memo(
-  ({ placeholder, onPlaceSelect, placesLibrary, map3DElement }) => {
+  ({
+    placeholder,
+    onPlaceSelect,
+    placesLibrary,
+    map3DElement,
+    disabled = false,
+  }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -44,6 +51,7 @@ const PlaceInput: React.FC<PlaceInputProps> = React.memo(
         ref={inputRef}
         className="w-full p-2 border rounded"
         placeholder={placeholder}
+        disabled={disabled}
       />
     );
   },

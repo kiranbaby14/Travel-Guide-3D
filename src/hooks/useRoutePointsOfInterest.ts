@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { RouteData, PlaceInsights, PointOfInterest } from "@/types";
+import { mockRouteData } from "./data";
 
 // lib/routeUtils.ts
 export function samplePathPoints(
@@ -239,7 +240,7 @@ export const useRoutePointsOfInterest = (
     const findPointsOfInterest = async () => {
       setIsLoading(true);
       setError(null);
-      const points: PointOfInterest[] = [];
+      const points: PointOfInterest[] = mockRouteData;
 
       try {
         const sampledPoints = samplePathPoints(
@@ -249,23 +250,24 @@ export const useRoutePointsOfInterest = (
         );
         let totalDistance = 0;
 
-        for (const [index, point] of sampledPoints.entries()) {
-          const nearbyPlaces = await findPlacesNearPoint(
-            placesService,
-            point,
-            totalDistance,
-          );
-          points.push(...nearbyPlaces);
+        // for (const [index, point] of sampledPoints.entries()) {
+        //   const nearbyPlaces = await findPlacesNearPoint(
+        //     placesService,
+        //     point,
+        //     totalDistance,
+        //   );
 
-          if (index < sampledPoints.length - 1) {
-            const nextPoint = sampledPoints[index + 1];
-            totalDistance +=
-              google.maps.geometry.spherical.computeDistanceBetween(
-                new google.maps.LatLng(point),
-                new google.maps.LatLng(nextPoint),
-              );
-          }
-        }
+        //   points.push(...nearbyPlaces);
+
+        //   if (index < sampledPoints.length - 1) {
+        //     const nextPoint = sampledPoints[index + 1];
+        //     totalDistance +=
+        //       google.maps.geometry.spherical.computeDistanceBetween(
+        //         new google.maps.LatLng(point),
+        //         new google.maps.LatLng(nextPoint),
+        //       );
+        //   }
+        // }
 
         // Use the new spacing function instead of simple deduplication
         const spacedPoints = selectSpacedPoints(points, minDistanceBetweenPOIs);

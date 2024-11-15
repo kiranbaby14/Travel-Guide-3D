@@ -115,10 +115,11 @@ const Map3DExample = () => {
       >
         <RouteDisplay key={routeKey} />
       </Map3D>
-      <PlaceSelector />
+      <PlaceSelector isTourActive={isTourStarted} />
       {routeData && !isCalculating && (
         <TourControls
           isAnimating={isAnimating}
+          isTourActive={isTourStarted}
           isPaused={isPaused}
           routeData={routeData}
           onStart={handleStartTour}

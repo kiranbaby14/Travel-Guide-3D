@@ -3,6 +3,7 @@ import { Pause, Play, Square } from "lucide-react";
 
 interface TourControlsProps {
   isAnimating: boolean;
+  isTourActive: boolean;
   isPaused: boolean;
   routeData: any;
   onStart: () => void;
@@ -12,6 +13,7 @@ interface TourControlsProps {
 
 const TourControls: React.FC<TourControlsProps> = ({
   isAnimating,
+  isTourActive,
   isPaused,
   routeData,
   onStart,
@@ -20,7 +22,7 @@ const TourControls: React.FC<TourControlsProps> = ({
 }) => (
   <div className="absolute top-8 right-8 z-10 space-y-2">
     <div className="flex gap-2">
-      {!isAnimating ? (
+      {!isAnimating && !isTourActive ? (
         <Button
           onClick={onStart}
           className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all duration-200"

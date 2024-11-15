@@ -14,6 +14,7 @@ const RouteDisplay = () => {
           position={origin}
           title="Origin"
           altitudeMode="RELATIVE_TO_GROUND"
+          color="#0099ff"
         />
       )}
       {destination && (
@@ -22,6 +23,7 @@ const RouteDisplay = () => {
           position={destination}
           title="Destination"
           altitudeMode="RELATIVE_TO_GROUND"
+          color="red"
         />
       )}
       {waypoints.map((waypoint) => (
@@ -30,12 +32,13 @@ const RouteDisplay = () => {
           position={waypoint.location}
           title="Waypoint"
           altitudeMode="RELATIVE_TO_GROUND"
+          color="green"
         />
       ))}
       {routeData && (
         <Polyline3D
           coordinates={routeData.routeCoordinates}
-          strokeColor="rgba(25, 102, 210, 0.75)"
+          strokeColor="rgba(25, 74, 210, 0.75)"
           strokeWidth={10}
           altitudeMode="RELATIVE_TO_GROUND"
         />
