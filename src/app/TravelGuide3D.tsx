@@ -62,6 +62,7 @@ const Map3DExample = () => {
 
   const {
     animateAlongPath,
+    focusOnPOI,
     isAnimating,
     isPaused,
     stopAnimation,
@@ -90,7 +91,7 @@ const Map3DExample = () => {
       duration: 100000,
       cameraHeight: 150,
       cameraDistance: 150,
-      tilt: 45,
+      tilt: 70,
       smoothing: 5,
     });
   }, [routeData, setCurrentPosition, animateAlongPath]);
@@ -150,6 +151,7 @@ const Map3DExample = () => {
             startTourAnimation();
           }}
           onMountNeeded={() => setRouteKey((prev) => prev + 1)}
+          focusOnPOI={focusOnPOI}
         />
       )}
       <MiniMap camera3dProps={viewProps} onMapClick={handleMapClick}></MiniMap>

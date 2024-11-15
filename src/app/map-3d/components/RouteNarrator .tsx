@@ -9,7 +9,8 @@ interface RouteNarratorProps {
   routeData: RouteData;
   placesService: google.maps.places.PlacesService;
   onLoadComplete: () => void;
-  onMountNeeded: () => void; // Add this prop to signal when route should remount
+  onMountNeeded: () => void;
+  focusOnPOI: (target: google.maps.LatLngLiteral, duration: number) => void;
 }
 
 const RouteNarrator: React.FC<RouteNarratorProps> = ({
@@ -18,6 +19,7 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
   placesService,
   onLoadComplete,
   onMountNeeded,
+  focusOnPOI,
 }) => {
   const [lastAnnouncedId, setLastAnnouncedId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<string>("");
@@ -27,7 +29,6 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
     placesService,
   );
 
-  // Request remount when search starts
   useEffect(() => {
     onMountNeeded();
   }, [isLoading]);
@@ -79,7 +80,6 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
     });
 
     if (nearbyPOI) {
-      // Create a more detailed announcement using the insights
       let message = `Approaching ${nearbyPOI.name}. `;
 
       if (nearbyPOI.insights.editorialSummary?.text) {
@@ -96,6 +96,9 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
         message += `Rated ${nearbyPOI.insights.rating} stars. `;
       }
 
+      // Focus camera on POI
+      focusOnPOI(nearbyPOI.location, 8000);
+
       setAnnouncement(message);
       setLastAnnouncedId(nearbyPOI.id);
       setSelectedPOI(nearbyPOI);
@@ -105,38 +108,40 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
         window.speechSynthesis.speak(utterance);
       }
 
-      const timer = setTimeout(() => {
+      // Set timeout to clear everything after 8 seconds
+      setTimeout(() => {
         setAnnouncement("");
         setSelectedPOI(null);
       }, 8000);
-
-      return () => clearTimeout(timer);
     }
-  }, [currentPosition, pointsOfInterest, isLoading, lastAnnouncedId]);
+  }, [
+    currentPosition,
+    pointsOfInterest,
+    isLoading,
+    lastAnnouncedId,
+    focusOnPOI,
+  ]);
 
   return (
     <>
-      {pointsOfInterest.map((poi, index) => {
-        const isNearby = poi.id === lastAnnouncedId;
-        return (
-          <Polygon3D
-            key={`${poi.id}-${index}`}
-            outerCoordinates={createPolygonCoordinates(poi.location)}
-            onClick={() => {
-              setSelectedPOI(poi);
-              setAnnouncement(`Point of Interest: ${poi.name}`);
-              setTimeout(() => {
-                setAnnouncement("");
-                setSelectedPOI(null);
-              }, 8000);
-            }}
-          />
-        );
-      })}
+      {pointsOfInterest.map((poi, index) => (
+        <Polygon3D
+          key={`${poi.id}-${index}`}
+          outerCoordinates={createPolygonCoordinates(poi.location)}
+          onClick={() => {
+            setSelectedPOI(poi);
+            setAnnouncement(`Point of Interest: ${poi.name}`);
+            setTimeout(() => {
+              setAnnouncement("");
+              setSelectedPOI(null);
+            }, 8000);
+          }}
+        />
+      ))}
 
       {/* POI Detail Card */}
       {selectedPOI && (
-        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-lg shadow-xl p-4 max-w-md w-full mx-4">
+        <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-lg shadow-xl p-4 max-w-md w-full mx-4 transition-all duration-300 ease-in-out">
           <div className="flex justify-between items-start">
             <div>
               <h3 className="text-xl font-semibold">{selectedPOI.name}</h3>
@@ -198,7 +203,7 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
 
       {/* Simple announcement for non-selected POIs */}
       {announcement && !selectedPOI && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-black/75 text-white px-6 py-3 rounded-full transition-opacity duration-300">
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50 bg-black/75 text-white px-6 py-3 rounded-full">
           <div className="text-lg font-medium">{announcement}</div>
         </div>
       )}
