@@ -23,6 +23,7 @@ interface RouteState {
   waypoints: Waypoint[];
   routeData: any | null;
   isCalculating: boolean;
+  travelMode?: google.maps.TravelMode;
 }
 
 interface RouteContextType extends RouteState {
@@ -31,6 +32,7 @@ interface RouteContextType extends RouteState {
   addWaypoint: (location: LatLngLiteral) => void;
   removeWaypoint: (id: string) => void;
   clearWaypoints: () => void;
+  setTravelMode: (mode: google.maps.TravelMode) => void;
 }
 
 const RouteContext = createContext<RouteContextType | null>(null);
@@ -43,6 +45,7 @@ export const RouteProvider: React.FC<{ children: React.ReactNode }> = ({
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [routeData, setRouteData] = useState<any | null>(null);
   const { calculateRoute, isCalculating } = useRouteCalculation();
+  const [travelMode, setTravelMode] = useState<google.maps.TravelMode>();
 
   const addWaypoint = useCallback((location: LatLngLiteral) => {
     const newWaypoint = {
@@ -68,7 +71,7 @@ export const RouteProvider: React.FC<{ children: React.ReactNode }> = ({
           origin,
           destination,
           waypoints: waypoints.map((wp) => wp.location),
-          travelMode: google.maps.TravelMode.DRIVING,
+          travelMode, // Use the selected travel mode
         });
 
         if (result) {
@@ -78,7 +81,7 @@ export const RouteProvider: React.FC<{ children: React.ReactNode }> = ({
     };
 
     updateRoute();
-  }, [origin, destination, waypoints]);
+  }, [origin, destination, waypoints, travelMode]);
 
   const value = {
     origin,
@@ -86,11 +89,13 @@ export const RouteProvider: React.FC<{ children: React.ReactNode }> = ({
     waypoints,
     routeData,
     isCalculating,
+    travelMode,
     setOrigin,
     setDestination,
     addWaypoint,
     removeWaypoint,
     clearWaypoints,
+    setTravelMode,
   };
 
   return (

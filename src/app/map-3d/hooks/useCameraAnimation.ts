@@ -84,6 +84,14 @@ export const useCameraAnimation = (
       startTime: 0,
       totalPausedTime: 0,
     };
+
+    // Reset last state
+    lastState.current = {
+      position: { lat: 0, lng: 0 },
+      heading: 0,
+      tilt: 0,
+      range: 0,
+    };
   }, []);
 
   const togglePause = useCallback(() => {
@@ -119,6 +127,8 @@ export const useCameraAnimation = (
 
   const focusOnPOI = useCallback(
     (target: google.maps.LatLngLiteral, focusDuration: number = 3000) => {
+      console.log(isAnimating);
+
       if (!isAnimating) return;
 
       // Store the current pause state before POI focus
@@ -415,6 +425,7 @@ export const useCameraAnimation = (
     animateAlongPath,
     focusOnPOI,
     isAnimating,
+    setIsAnimating,
     isPaused,
     isPoiFocused,
     stopAnimation,

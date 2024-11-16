@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import { useMap3D } from "@/context/Map3DContext";
@@ -7,6 +7,7 @@ import WaypointItem from "./WaypointItem";
 import { Location } from "./types";
 import { useRoute } from "@/context/RouteContext";
 import { Lock, MapPin } from "lucide-react";
+import TravelModeSelector from "./TravelModeSelector";
 
 interface PlaceSelectorProps {
   isTourActive?: boolean;
@@ -26,7 +27,8 @@ const PlaceSelector: React.FC<PlaceSelectorProps> = ({
     removeWaypoint,
     clearWaypoints,
     waypoints,
-    routeData,
+    travelMode,
+    setTravelMode,
   } = useRoute();
 
   const handlePlaceSelect = async (
@@ -58,6 +60,10 @@ const PlaceSelector: React.FC<PlaceSelectorProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (map3DElement) setTravelMode(google.maps.TravelMode.DRIVING);
+  }, [map3DElement]);
+
   if (!placesLibrary || !map3DElement) return null;
 
   return (
@@ -75,6 +81,12 @@ const PlaceSelector: React.FC<PlaceSelectorProps> = ({
             </span>
           </div>
         </div>
+
+        <TravelModeSelector
+          selectedMode={travelMode}
+          onChange={setTravelMode}
+          disabled={isTourActive}
+        />
 
         <div className="space-y-2">
           <div className="flex items-center gap-2">

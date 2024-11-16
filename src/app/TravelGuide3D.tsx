@@ -64,6 +64,7 @@ const Map3DExample = () => {
     animateAlongPath,
     focusOnPOI,
     isAnimating,
+    setIsAnimating,
     isPaused,
     stopAnimation,
     togglePause,
@@ -101,6 +102,7 @@ const Map3DExample = () => {
     if (routeData?.overview_path) {
       setIsLoadingPOIs(true);
       setIsTourStarted(true);
+      setIsAnimating(true);
     }
   };
 
