@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Map3DCameraProps } from "../Map3D";
+import { calculateDuration, calculatePathLength } from "@/lib/routeUtils";
 
 interface AnimationConfig {
-  duration?: number;
+  speedKmH?: number;
   cameraHeight?: number;
   cameraDistance?: number;
   tilt?: number;
@@ -292,12 +293,16 @@ export const useCameraAnimation = (
     pathRef.current = path;
 
     const {
-      duration = 10000,
+      speedKmH = 150, // Default speed
       cameraHeight = 100,
       cameraDistance = 300,
       tilt = 45,
       smoothing = 3,
     } = config;
+
+    // Calculate path length and duration
+    const pathLength = calculatePathLength(path);
+    const duration = calculateDuration(pathLength, speedKmH);
 
     durationRef.current = duration;
 

@@ -82,7 +82,7 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
       coordinates.push({
         lat,
         lng,
-        altitude: 100,
+        altitude: 70,
       });
     }
 
