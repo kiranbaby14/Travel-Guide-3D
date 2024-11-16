@@ -89,10 +89,10 @@ const Map3DExample = () => {
 
     animateAlongPath(routeData.overview_path, {
       duration: 100000,
-      cameraHeight: 150,
-      cameraDistance: 150,
-      tilt: 70,
-      smoothing: 5,
+      cameraHeight: 100,
+      cameraDistance: 300,
+      tilt: 45,
+      smoothing: 3,
     });
   }, [routeData, setCurrentPosition, animateAlongPath]);
 

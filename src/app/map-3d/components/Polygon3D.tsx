@@ -19,9 +19,9 @@ export interface Polygon3DProps {
 export const Polygon3D: React.FC<Polygon3DProps> = ({
   outerCoordinates,
   altitudeMode = "RELATIVE_TO_GROUND",
-  fillColor = "rgba(255, 0, 0, 0.5)",
-  strokeColor = "#0000ff",
-  strokeWidth = 2,
+  fillColor = "rgba(66, 133, 244, 0.45)",
+  strokeColor = "rgba(25, 103, 210, 0.8)",
+  strokeWidth = 1.5,
   extruded = true,
   onClick,
 }) => {

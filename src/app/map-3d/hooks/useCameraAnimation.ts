@@ -28,6 +28,9 @@ export const useCameraAnimation = (
   const [isAnimating, setIsAnimating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const isPausedRef = useRef(false);
+  const pathRef = useRef<google.maps.LatLng[]>([]);
+  const durationRef = useRef(0);
+
   const lastState = useRef<AnimationState>({
     position: { lat: 0, lng: 0 },
     heading: 0,
@@ -35,29 +38,19 @@ export const useCameraAnimation = (
     range: 0,
   });
 
-  const poiFocusRef = useRef<{
-    isActive: boolean;
-    phase: "transitioning-to" | "focused" | "transitioning-from" | null;
-    target: google.maps.LatLngLiteral | null;
-    originalState: AnimationState | null;
-    startTime: number;
-    transitionDuration: number;
-    focusDuration: number;
-  }>({
+  const poiFocusRef = useRef({
     isActive: false,
-    phase: null,
-    target: null,
-    originalState: null,
+    phase: null as "transitioning-to" | "focused" | "transitioning-from" | null,
+    target: null as google.maps.LatLngLiteral | null,
+    pathState: null as AnimationState | null,
     startTime: 0,
+    pathTime: 0,
+    wasPathPaused: false, // Add this to track pause state before POI focus
     transitionDuration: 1500,
     focusDuration: 8000,
   });
 
-  const pauseState = useRef<{
-    pauseTime: number;
-    startTime: number;
-    totalPausedTime: number;
-  }>({
+  const pauseState = useRef({
     pauseTime: 0,
     startTime: 0,
     totalPausedTime: 0,
@@ -71,12 +64,15 @@ export const useCameraAnimation = (
     setIsAnimating(false);
     setIsPaused(false);
     isPausedRef.current = false;
+    pathRef.current = [];
     poiFocusRef.current = {
       isActive: false,
       phase: null,
       target: null,
-      originalState: null,
+      pathState: null,
       startTime: 0,
+      pathTime: 0,
+      wasPathPaused: false,
       transitionDuration: 1500,
       focusDuration: 8000,
     };
@@ -106,44 +102,48 @@ export const useCameraAnimation = (
     return () => stopAnimation();
   }, [stopAnimation]);
 
-  const interpolateAngle = (a: number, b: number, t: number) => {
-    const diff = b - a;
-    const adjusted = ((diff + 180) % 360) - 180;
-    return a + adjusted * t;
+  const normalizeAngle = (angle: number): number => ((angle % 360) + 360) % 360;
+
+  const getShortestRotation = (start: number, end: number): number => {
+    const normalized = normalizeAngle(end - start);
+    return normalized > 180 ? normalized - 360 : normalized;
   };
 
-  const smoothPosition = (
-    current: google.maps.LatLng,
-    target: google.maps.LatLng,
-    smoothing: number,
-  ): google.maps.LatLng => {
-    const lat = current.lat() + (target.lat() - current.lat()) / smoothing;
-    const lng = current.lng() + (target.lng() - current.lng()) / smoothing;
-    return new google.maps.LatLng(lat, lng);
+  const interpolateAngle = (start: number, end: number, t: number): number => {
+    const rotation = getShortestRotation(start, end);
+    return normalizeAngle(start + rotation * t);
   };
 
   const smoothValue = (
     current: number,
     target: number,
     smoothing: number,
-  ): number => {
-    return current + (target - current) / smoothing;
-  };
-
-  const easeInOutCubic = (t: number): number => {
-    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  };
+  ): number => current + (target - current) / smoothing;
 
   const focusOnPOI = useCallback(
     (target: google.maps.LatLngLiteral, focusDuration: number = 8000) => {
       if (!isAnimating) return;
 
+      // Store the current pause state before POI focus
+      const wasPathPaused = isPausedRef.current;
+
+      // If the path was paused, we need to update the total paused time
+      if (wasPathPaused) {
+        pauseState.current.totalPausedTime +=
+          performance.now() - pauseState.current.pauseTime;
+      }
+
       poiFocusRef.current = {
         isActive: true,
         phase: "transitioning-to",
         target,
-        originalState: { ...lastState.current },
+        pathState: { ...lastState.current },
         startTime: performance.now(),
+        pathTime:
+          performance.now() -
+          pauseState.current.startTime -
+          pauseState.current.totalPausedTime,
+        wasPathPaused,
         transitionDuration: 1500,
         focusDuration,
       };
@@ -151,28 +151,171 @@ export const useCameraAnimation = (
     [isAnimating],
   );
 
+  const handlePoiFocus = (
+    currentTime: number,
+    currentPosition: google.maps.LatLng,
+    cameraHeight: number,
+    smoothing: number,
+  ) => {
+    const {
+      phase,
+      target,
+      pathState,
+      startTime,
+      transitionDuration,
+      focusDuration,
+      wasPathPaused,
+    } = poiFocusRef.current;
+    const elapsed = currentTime - startTime;
+
+    if (phase === "transitioning-to" || phase === "transitioning-from") {
+      const progress = Math.min(elapsed / transitionDuration, 1);
+      const t =
+        progress < 0.5
+          ? 2 * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+      const position = new google.maps.LatLng(
+        pathState!.position.lat,
+        pathState!.position.lng,
+      );
+
+      const targetHeading = google.maps.geometry.spherical.computeHeading(
+        position,
+        new google.maps.LatLng(target!.lat, target!.lng),
+      );
+
+      const startHeading =
+        phase === "transitioning-to"
+          ? pathState!.heading
+          : lastState.current.heading;
+      const endHeading =
+        phase === "transitioning-to" ? targetHeading : pathState!.heading;
+
+      const startTilt = phase === "transitioning-to" ? pathState!.tilt : 60;
+      const endTilt = phase === "transitioning-to" ? 60 : pathState!.tilt;
+
+      const startRange = phase === "transitioning-to" ? pathState!.range : 400;
+      const endRange = phase === "transitioning-to" ? 400 : pathState!.range;
+
+      const smoothedHeading = interpolateAngle(startHeading, endHeading, t);
+      const smoothedTilt = startTilt + (endTilt - startTilt) * t;
+      const smoothedRange = startRange + (endRange - startRange) * t;
+
+      onCameraChange({
+        center: {
+          lat: position.lat(),
+          lng: position.lng(),
+          altitude: cameraHeight,
+        },
+        heading: smoothedHeading,
+        tilt: smoothedTilt,
+        range: smoothedRange,
+        roll: 0,
+      });
+
+      Object.assign(lastState.current, {
+        position: { lat: position.lat(), lng: position.lng() },
+        heading: smoothedHeading,
+        tilt: smoothedTilt,
+        range: smoothedRange,
+      });
+
+      if (progress >= 1) {
+        if (phase === "transitioning-to") {
+          poiFocusRef.current.phase = "focused";
+          poiFocusRef.current.startTime = currentTime;
+        } else {
+          // Restore pause state and adjust times
+          if (wasPathPaused) {
+            isPausedRef.current = true;
+            setIsPaused(true);
+            pauseState.current.pauseTime = performance.now();
+          } else {
+            isPausedRef.current = false;
+            setIsPaused(false);
+          }
+
+          // Adjust start time to maintain correct path position
+          pauseState.current.startTime =
+            currentTime - poiFocusRef.current.pathTime;
+          poiFocusRef.current.isActive = false;
+          poiFocusRef.current.phase = null;
+        }
+      }
+      return true;
+    } else if (phase === "focused") {
+      if (elapsed < focusDuration) {
+        const position = new google.maps.LatLng(
+          pathState!.position.lat,
+          pathState!.position.lng,
+        );
+
+        const targetHeading = google.maps.geometry.spherical.computeHeading(
+          position,
+          new google.maps.LatLng(target!.lat, target!.lng),
+        );
+
+        onCameraChange({
+          center: {
+            lat: position.lat(),
+            lng: position.lng(),
+            altitude: cameraHeight,
+          },
+          heading: targetHeading,
+          tilt: 60,
+          range: 400,
+          roll: 0,
+        });
+
+        Object.assign(lastState.current, {
+          position: { lat: position.lat(), lng: position.lng() },
+          heading: targetHeading,
+          tilt: 60,
+          range: 400,
+        });
+      } else {
+        poiFocusRef.current.phase = "transitioning-from";
+        poiFocusRef.current.startTime = currentTime;
+      }
+      return true;
+    }
+    return false;
+  };
+
   const animateAlongPath = (
     path: google.maps.LatLng[],
     config: AnimationConfig = {},
   ) => {
     if (path.length < 2) return;
-
     stopAnimation();
+
+    pathRef.current = path;
 
     const {
       duration = 10000,
-      cameraHeight = 50,
-      cameraDistance = 100,
+      cameraHeight = 100,
+      cameraDistance = 300,
       tilt = 45,
       smoothing = 3,
     } = config;
 
+    durationRef.current = duration;
+
+    // Initialize with the first point
+    lastState.current = {
+      position: {
+        lat: path[0].lat(),
+        lng: path[0].lng(),
+      },
+      heading: 0,
+      tilt,
+      range: cameraDistance,
+    };
+
     pauseState.current.startTime = performance.now();
     pauseState.current.totalPausedTime = 0;
     setIsAnimating(true);
-
-    let lastCarPosition = path[0];
-    let lastCameraPosition = path[0];
 
     const animate = (currentTime: number) => {
       if (isPausedRef.current) {
@@ -180,182 +323,16 @@ export const useCameraAnimation = (
         return;
       }
 
-      if (poiFocusRef.current.isActive && poiFocusRef.current.target) {
-        const focusState = poiFocusRef.current;
-        const phaseStartTime = focusState.startTime;
-        const elapsed = currentTime - phaseStartTime;
+      const currentPosition = new google.maps.LatLng(
+        lastState.current.position.lat,
+        lastState.current.position.lng,
+      );
 
-        if (focusState.phase === "transitioning-to") {
-          const progress = Math.min(elapsed / focusState.transitionDuration, 1);
-          const easedProgress = easeInOutCubic(progress);
-
-          if (progress < 1) {
-            const targetHeading = google.maps.geometry.spherical.computeHeading(
-              new google.maps.LatLng(lastCarPosition),
-              new google.maps.LatLng(focusState.target),
-            );
-
-            const interpolatedHeading = interpolateAngle(
-              focusState.originalState!.heading,
-              targetHeading,
-              easedProgress,
-            );
-
-            const smoothedHeading = smoothValue(
-              lastState.current.heading,
-              interpolatedHeading,
-              smoothing,
-            );
-
-            const targetTilt =
-              focusState.originalState!.tilt +
-              (60 - focusState.originalState!.tilt) * easedProgress;
-            const smoothedTilt = smoothValue(
-              lastState.current.tilt,
-              targetTilt,
-              smoothing,
-            );
-
-            const targetRange =
-              focusState.originalState!.range +
-              (200 - focusState.originalState!.range) * easedProgress;
-            const smoothedRange = smoothValue(
-              lastState.current.range,
-              targetRange,
-              smoothing,
-            );
-
-            onCameraChange({
-              center: {
-                lat: lastCarPosition.lat(),
-                lng: lastCarPosition.lng(),
-                altitude: cameraHeight,
-              },
-              heading: smoothedHeading,
-              tilt: smoothedTilt,
-              range: smoothedRange,
-              roll: 0,
-            });
-
-            lastState.current = {
-              position: {
-                lat: lastCarPosition.lat(),
-                lng: lastCarPosition.lng(),
-              },
-              heading: smoothedHeading,
-              tilt: smoothedTilt,
-              range: smoothedRange,
-            };
-          } else {
-            focusState.phase = "focused";
-            focusState.startTime = currentTime;
-          }
-        } else if (focusState.phase === "focused") {
-          if (elapsed < focusState.focusDuration) {
-            const targetHeading = google.maps.geometry.spherical.computeHeading(
-              new google.maps.LatLng(lastCarPosition),
-              new google.maps.LatLng(focusState.target),
-            );
-
-            const smoothedHeading = smoothValue(
-              lastState.current.heading,
-              targetHeading,
-              smoothing,
-            );
-
-            onCameraChange({
-              center: {
-                lat: lastCarPosition.lat(),
-                lng: lastCarPosition.lng(),
-                altitude: cameraHeight,
-              },
-              heading: smoothedHeading,
-              tilt: 60,
-              range: 200,
-              roll: 0,
-            });
-
-            lastState.current = {
-              position: {
-                lat: lastCarPosition.lat(),
-                lng: lastCarPosition.lng(),
-              },
-              heading: smoothedHeading,
-              tilt: 60,
-              range: 200,
-            };
-          } else {
-            focusState.phase = "transitioning-from";
-            focusState.startTime = currentTime;
-          }
-        } else if (focusState.phase === "transitioning-from") {
-          const progress = Math.min(elapsed / focusState.transitionDuration, 1);
-          const easedProgress = easeInOutCubic(progress);
-
-          if (progress < 1) {
-            const targetHeading = focusState.originalState!.heading;
-            const interpolatedHeading = interpolateAngle(
-              lastState.current.heading,
-              targetHeading,
-              easedProgress,
-            );
-
-            const smoothedHeading = smoothValue(
-              lastState.current.heading,
-              interpolatedHeading,
-              smoothing,
-            );
-
-            const targetTilt =
-              60 + (focusState.originalState!.tilt - 60) * easedProgress;
-            const smoothedTilt = smoothValue(
-              lastState.current.tilt,
-              targetTilt,
-              smoothing,
-            );
-
-            const targetRange =
-              200 + (focusState.originalState!.range - 200) * easedProgress;
-            const smoothedRange = smoothValue(
-              lastState.current.range,
-              targetRange,
-              smoothing,
-            );
-
-            onCameraChange({
-              center: {
-                lat: lastCarPosition.lat(),
-                lng: lastCarPosition.lng(),
-                altitude: cameraHeight,
-              },
-              heading: smoothedHeading,
-              tilt: smoothedTilt,
-              range: smoothedRange,
-              roll: 0,
-            });
-
-            lastState.current = {
-              position: {
-                lat: lastCarPosition.lat(),
-                lng: lastCarPosition.lng(),
-              },
-              heading: smoothedHeading,
-              tilt: smoothedTilt,
-              range: smoothedRange,
-            };
-          } else {
-            poiFocusRef.current = {
-              isActive: false,
-              phase: null,
-              target: null,
-              originalState: null,
-              startTime: 0,
-              transitionDuration: 1500,
-              focusDuration: 8000,
-            };
-          }
-        }
-
+      if (
+        poiFocusRef.current.isActive &&
+        poiFocusRef.current.target &&
+        handlePoiFocus(currentTime, currentPosition, cameraHeight, smoothing)
+      ) {
         animationRef.current = requestAnimationFrame(animate);
         return;
       }
@@ -364,104 +341,62 @@ export const useCameraAnimation = (
         currentTime -
         pauseState.current.startTime -
         pauseState.current.totalPausedTime;
-      const progress = Math.min(elapsed / duration, 1);
-
-      const index = Math.max(Math.floor(progress * (path.length - 1)), 0);
-      const nextIndex = Math.min(index + 1, path.length - 1);
-      const subProgress = (progress * (path.length - 1)) % 1;
-
-      const currentPoint = path[index];
-      const nextPoint = path[nextIndex];
-
-      const targetCarPosition = google.maps.geometry.spherical.interpolate(
-        currentPoint,
-        nextPoint,
-        subProgress,
-      );
-
-      const smoothedCarPosition = smoothPosition(
-        lastCarPosition,
-        targetCarPosition,
-        smoothing,
-      );
-      lastCarPosition = smoothedCarPosition;
-
-      const lookAheadIndex = Math.min(index + 2, path.length - 1);
-      const lookAheadPoint = path[lookAheadIndex];
-      const targetHeading = google.maps.geometry.spherical.computeHeading(
-        smoothedCarPosition,
-        lookAheadPoint,
-      );
-
-      const smoothedHeading = smoothValue(
-        lastState.current.heading,
-        targetHeading,
-        smoothing,
-      );
-
-      const targetCameraOffset = google.maps.geometry.spherical.computeOffset(
-        smoothedCarPosition,
-        -cameraDistance,
-        smoothedHeading,
-      );
-
-      const smoothedCameraPosition = smoothPosition(
-        lastCameraPosition,
-        targetCameraOffset,
-        smoothing,
-      );
-      lastCameraPosition = smoothedCameraPosition;
-
-      const speedFactor = Math.min(
-        google.maps.geometry.spherical.computeDistanceBetween(
-          currentPoint,
-          nextPoint,
-        ) / 100,
-        1,
-      );
-      const turnFactor = Math.abs(
-        (targetHeading - lastState.current.heading) / 180,
-      );
-      const targetTilt =
-        tilt +
-        Math.sin(progress * Math.PI * 8) * 2 * speedFactor +
-        turnFactor * 5;
-      const smoothedTilt = smoothValue(
-        lastState.current.tilt,
-        targetTilt,
-        smoothing,
-      );
-
-      const targetRange = cameraDistance * (1 + turnFactor * 0.2);
-      const smoothedRange = smoothValue(
-        lastState.current.range,
-        targetRange,
-        smoothing,
-      );
-
-      onCameraChange({
-        center: {
-          lat: smoothedCameraPosition.lat(),
-          lng: smoothedCameraPosition.lng(),
-          altitude: cameraHeight,
-        },
-        heading: smoothedHeading,
-        tilt: smoothedTilt,
-        range: smoothedRange,
-        roll: Math.sin(progress * Math.PI * 4) * 2 * turnFactor,
-      });
-
-      lastState.current = {
-        position: {
-          lat: smoothedCarPosition.lat(),
-          lng: smoothedCarPosition.lng(),
-        },
-        heading: smoothedHeading,
-        tilt: smoothedTilt,
-        range: smoothedRange,
-      };
+      const progress = Math.min(Math.max(elapsed / duration, 0), 1);
 
       if (progress < 1) {
+        const pathProgress = progress * (pathRef.current.length - 1);
+        const index = Math.max(
+          0,
+          Math.min(Math.floor(pathProgress), pathRef.current.length - 2),
+        );
+        const nextIndex = Math.min(index + 1, pathRef.current.length - 1);
+        const subProgress = pathProgress - index;
+
+        const currentPoint = pathRef.current[index];
+        const nextPoint = pathRef.current[nextIndex];
+        const lookAheadPoint =
+          pathRef.current[Math.min(index + 2, pathRef.current.length - 1)];
+
+        const targetPosition = google.maps.geometry.spherical.interpolate(
+          currentPoint,
+          nextPoint,
+          subProgress,
+        );
+
+        const targetHeading = google.maps.geometry.spherical.computeHeading(
+          targetPosition,
+          lookAheadPoint,
+        );
+
+        const smoothedHeading = interpolateAngle(
+          lastState.current.heading,
+          targetHeading,
+          1 / smoothing,
+        );
+        const turnFactor =
+          Math.abs(
+            getShortestRotation(lastState.current.heading, targetHeading),
+          ) / 180;
+
+        onCameraChange({
+          center: {
+            lat: targetPosition.lat(),
+            lng: targetPosition.lng(),
+            altitude: cameraHeight,
+          },
+          heading: smoothedHeading,
+          tilt: tilt + turnFactor * 5,
+          range: cameraDistance * (1 + turnFactor * 0.3),
+          roll: turnFactor * 2,
+        });
+
+        Object.assign(lastState.current, {
+          position: { lat: targetPosition.lat(), lng: targetPosition.lng() },
+          heading: smoothedHeading,
+          tilt: tilt + turnFactor * 5,
+          range: cameraDistance * (1 + turnFactor * 0.3),
+        });
+
         animationRef.current = requestAnimationFrame(animate);
       } else {
         stopAnimation();
