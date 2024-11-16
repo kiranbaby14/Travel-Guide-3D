@@ -4,6 +4,7 @@ import { Pause, Play, Square } from "lucide-react";
 interface TourControlsProps {
   isAnimating: boolean;
   isTourActive: boolean;
+  isPoiFocused: boolean;
   isPaused: boolean;
   routeData: any;
   onStart: () => void;
@@ -15,6 +16,7 @@ const TourControls: React.FC<TourControlsProps> = ({
   isAnimating,
   isTourActive,
   isPaused,
+  isPoiFocused,
   routeData,
   onStart,
   onTogglePause,
@@ -35,6 +37,7 @@ const TourControls: React.FC<TourControlsProps> = ({
           <Button
             onClick={onTogglePause}
             className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 transition-all duration-200"
+            disabled={isPoiFocused}
           >
             {isPaused ? (
               <>

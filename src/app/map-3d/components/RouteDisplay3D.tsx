@@ -13,7 +13,7 @@ const RouteDisplay3D = () => {
           key={`origin-${origin.lat}-${origin.lng}`}
           position={origin}
           title="Origin"
-          altitudeMode="RELATIVE_TO_GROUND"
+          altitudeMode="RELATIVE_TO_MESH"
           color="#0099ff"
         />
       )}
@@ -22,7 +22,7 @@ const RouteDisplay3D = () => {
           key={`destination-${destination.lat}-${destination.lng}`}
           position={destination}
           title="Destination"
-          altitudeMode="RELATIVE_TO_GROUND"
+          altitudeMode="RELATIVE_TO_MESH"
           color="red"
         />
       )}
@@ -31,7 +31,7 @@ const RouteDisplay3D = () => {
           key={waypoint.id}
           position={waypoint.location}
           title="Waypoint"
-          altitudeMode="RELATIVE_TO_GROUND"
+          altitudeMode="RELATIVE_TO_MESH"
           color="green"
         />
       ))}

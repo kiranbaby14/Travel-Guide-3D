@@ -67,6 +67,7 @@ const Map3DExample = () => {
     isPaused,
     stopAnimation,
     togglePause,
+    isPoiFocused,
   } = useCameraAnimation(handleCameraChange, {
     onAnimationEnd: () => {
       setIsTourStarted(false);
@@ -91,7 +92,7 @@ const Map3DExample = () => {
       duration: 100000,
       cameraHeight: 100,
       cameraDistance: 300,
-      tilt: 45,
+      tilt: 60,
       smoothing: 3,
     });
   }, [routeData, setCurrentPosition, animateAlongPath]);
@@ -124,6 +125,7 @@ const Map3DExample = () => {
           isTourActive={isTourStarted}
           isPaused={isPaused}
           routeData={routeData}
+          isPoiFocused={isPoiFocused}
           onStart={handleStartTour}
           onTogglePause={togglePause}
           onStop={handleStopTour}

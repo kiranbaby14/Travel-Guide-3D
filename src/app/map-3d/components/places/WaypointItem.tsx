@@ -1,5 +1,6 @@
 import React from "react";
 import { Waypoint } from "./types";
+import { X } from "lucide-react";
 
 interface WaypointItemProps {
   waypoint: Waypoint;
@@ -21,7 +22,7 @@ const WaypointItem: React.FC<WaypointItemProps> = React.memo(
         aria-label={`Remove stop ${index + 1}`}
         disabled={disabled}
       >
-        ×
+        <X className="w-4 h-4" />
       </button>
     </div>
   ),

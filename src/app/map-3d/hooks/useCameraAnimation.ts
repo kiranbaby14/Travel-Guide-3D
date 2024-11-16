@@ -27,6 +27,7 @@ export const useCameraAnimation = (
   const animationRef = useRef<number>();
   const [isAnimating, setIsAnimating] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [isPoiFocused, setIsPoiFocused] = useState(false);
   const isPausedRef = useRef(false);
   const pathRef = useRef<google.maps.LatLng[]>([]);
   const durationRef = useRef(0);
@@ -47,7 +48,7 @@ export const useCameraAnimation = (
     pathTime: 0,
     wasPathPaused: false, // Add this to track pause state before POI focus
     transitionDuration: 1500,
-    focusDuration: 8000,
+    focusDuration: 3000,
   });
 
   const pauseState = useRef({
@@ -63,6 +64,7 @@ export const useCameraAnimation = (
     }
     setIsAnimating(false);
     setIsPaused(false);
+    setIsPoiFocused(false);
     isPausedRef.current = false;
     pathRef.current = [];
     poiFocusRef.current = {
@@ -74,7 +76,7 @@ export const useCameraAnimation = (
       pathTime: 0,
       wasPathPaused: false,
       transitionDuration: 1500,
-      focusDuration: 8000,
+      focusDuration: 3000,
     };
     pauseState.current = {
       pauseTime: 0,
@@ -114,14 +116,8 @@ export const useCameraAnimation = (
     return normalizeAngle(start + rotation * t);
   };
 
-  const smoothValue = (
-    current: number,
-    target: number,
-    smoothing: number,
-  ): number => current + (target - current) / smoothing;
-
   const focusOnPOI = useCallback(
-    (target: google.maps.LatLngLiteral, focusDuration: number = 8000) => {
+    (target: google.maps.LatLngLiteral, focusDuration: number = 3000) => {
       if (!isAnimating) return;
 
       // Store the current pause state before POI focus
@@ -132,6 +128,8 @@ export const useCameraAnimation = (
         pauseState.current.totalPausedTime +=
           performance.now() - pauseState.current.pauseTime;
       }
+
+      setIsPoiFocused(true);
 
       poiFocusRef.current = {
         isActive: true,
@@ -226,6 +224,7 @@ export const useCameraAnimation = (
           poiFocusRef.current.phase = "focused";
           poiFocusRef.current.startTime = currentTime;
         } else {
+          setIsPoiFocused(false);
           // Restore pause state and adjust times
           if (wasPathPaused) {
             isPausedRef.current = true;
@@ -412,6 +411,7 @@ export const useCameraAnimation = (
     focusOnPOI,
     isAnimating,
     isPaused,
+    isPoiFocused,
     stopAnimation,
     togglePause,
   };

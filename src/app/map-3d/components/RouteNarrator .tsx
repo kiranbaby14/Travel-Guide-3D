@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRoutePointsOfInterest } from "@/hooks";
 import { Polygon3D } from "./Polygon3D";
 import { Accessibility, Clock, Star } from "lucide-react";
@@ -29,6 +29,31 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
     placesService,
   );
 
+  // Cleanup function to handle component unmount or tour stop
+  const cleanup = useCallback(() => {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setAnnouncement("");
+    setSelectedPOI(null);
+    setLastAnnouncedId(null);
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (speechSynthesis.speaking || speechSynthesis.pending) {
+        speechSynthesis.cancel();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      cleanup();
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [cleanup]);
+
   useEffect(() => {
     onMountNeeded();
   }, [isLoading]);
@@ -41,7 +66,7 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
 
   const createPolygonCoordinates = (
     center: google.maps.LatLngLiteral,
-    radius: number = 50,
+    radius: number = 30,
   ): google.maps.LatLngAltitudeLiteral[] => {
     const coordinates: google.maps.LatLngAltitudeLiteral[] = [];
     const numPoints = 5;
@@ -64,6 +89,27 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
     coordinates.push(coordinates[0]);
     return coordinates;
   };
+
+  const clearAnnouncement = useCallback(() => {
+    setAnnouncement("");
+    setTimeout(() => {
+      setSelectedPOI(null);
+    }, 3000);
+  }, []);
+
+  const speakAnnouncement = useCallback(
+    (message: string) => {
+      if ("speechSynthesis" in window) {
+        // Cancel any ongoing speech
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.onend = clearAnnouncement;
+        window.speechSynthesis.speak(utterance);
+      }
+    },
+    [clearAnnouncement],
+  );
 
   useEffect(() => {
     if (isLoading || !currentPosition || pointsOfInterest.length === 0) return;
@@ -96,23 +142,19 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
         message += `Rated ${nearbyPOI.insights.rating} stars. `;
       }
 
+      // Calculate focus duration based on message length + extra time for clearing
+      const wordCount = message.split(" ").length;
+      const estimatedSpeechDuration = (wordCount / 100) * 60 * 1000; // ~100 words per minute
+      const totalFocusDuration = estimatedSpeechDuration + 1000; // Add 2 seconds after speech
+
       // Focus camera on POI
-      focusOnPOI(nearbyPOI.location, 8000);
+      focusOnPOI(nearbyPOI.location, totalFocusDuration);
 
       setAnnouncement(message);
       setLastAnnouncedId(nearbyPOI.id);
       setSelectedPOI(nearbyPOI);
 
-      if ("speechSynthesis" in window) {
-        const utterance = new SpeechSynthesisUtterance(message);
-        window.speechSynthesis.speak(utterance);
-      }
-
-      // Set timeout to clear everything after 8 seconds
-      setTimeout(() => {
-        setAnnouncement("");
-        setSelectedPOI(null);
-      }, 8000);
+      speakAnnouncement(message);
     }
   }, [
     currentPosition,
@@ -120,6 +162,7 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
     isLoading,
     lastAnnouncedId,
     focusOnPOI,
+    speakAnnouncement,
   ]);
 
   return (
@@ -130,11 +173,9 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
           outerCoordinates={createPolygonCoordinates(poi.location)}
           onClick={() => {
             setSelectedPOI(poi);
-            setAnnouncement(`Point of Interest: ${poi.name}`);
-            setTimeout(() => {
-              setAnnouncement("");
-              setSelectedPOI(null);
-            }, 8000);
+            const message = `Point of Interest: ${poi.name}`;
+            setAnnouncement(message);
+            speakAnnouncement(message);
           }}
         />
       ))}
