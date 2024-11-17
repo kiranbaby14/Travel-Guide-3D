@@ -175,6 +175,15 @@ const TravelGuide3D = () => {
       <Map3DProvider>
         <RouteProvider>
           <div className="w-screen h-screen">
+            <h1
+              className="absolute top-4 left-1/2 -translate-x-1/2 text-2xl font-bold z-50 px-6 py-2 rounded-full
+              bg-gradient-to-br from-black/60 to-black/40 backdrop-blur-sm
+              text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400
+              hover:from-blue-500 hover:via-purple-500 hover:to-pink-500
+              transition-all duration-300 shadow-lg"
+            >
+              TravelGuide3D
+            </h1>
             <Map3DExample />
           </div>
         </RouteProvider>
