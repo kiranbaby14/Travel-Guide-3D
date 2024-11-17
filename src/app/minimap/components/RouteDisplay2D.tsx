@@ -12,11 +12,11 @@ const RouteDisplay2D = () => {
     destination: "text-red-500",
   } as const;
 
-  if (!routeData) return null;
-
   return (
     <>
-      {routeData.overview_path && <Polyline2D path={routeData.overview_path} />}
+      {routeData && routeData.overview_path && (
+        <Polyline2D path={routeData.overview_path} />
+      )}
       {origin && (
         <Marker2D position={origin} type="origin" color={markerColors.origin} />
       )}

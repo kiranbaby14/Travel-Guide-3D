@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMap3D } from "@/context/Map3DContext";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
+import { Polygon3D } from "./Polygon3D";
 
 export interface Marker3DProps {
   position: google.maps.LatLngLiteral;
@@ -13,6 +14,11 @@ export interface Marker3DProps {
     | "RELATIVE_TO_MESH";
   altitude?: number;
   color?: string;
+  elevated?: boolean;
+  scale?: number;
+  glyph?: string;
+  showAnchorLine?: boolean;
+  anchorLineWidth?: number;
 }
 
 export const Marker3D: React.FC<Marker3DProps> = ({
@@ -22,12 +28,28 @@ export const Marker3D: React.FC<Marker3DProps> = ({
   altitudeMode = "RELATIVE_TO_MESH",
   altitude = 0,
   color = "#EA4335",
+  elevated = false,
+  scale = 1,
+  glyph,
+  showAnchorLine = true,
+  anchorLineWidth = 2,
 }) => {
   const { map3DElement, maps3d } = useMap3D();
   const markerLib = useMapsLibrary("marker");
   const markerRef =
     useRef<google.maps.maps3d.Marker3DInteractiveElement | null>(null);
   const [markerElementReady, setMarkerElementReady] = useState(false);
+
+  // Use elevated settings if elevated prop is true
+  const effectiveAltitude = elevated ? altitude || 30 : altitude;
+
+  // Create anchor line coordinates for elevated markers
+  const getAnchorLineCoordinates = (): google.maps.LatLngAltitudeLiteral[] => {
+    return [
+      { ...position, altitude: effectiveAltitude }, // Top point (marker position)
+      { ...position, altitude: 0 }, // Ground point
+    ];
+  };
 
   // Handle marker element initialization
   useEffect(() => {
@@ -63,8 +85,10 @@ export const Marker3D: React.FC<Marker3DProps> = ({
       if (color) {
         const pin = new markerLib.PinElement({
           background: color,
-          glyphColor: "white",
-          borderColor: "#f6f7f6",
+          borderColor: "#ffffff",
+          glyphColor: "#ffffff",
+          scale: scale,
+          glyph: glyph,
         });
         // Clear existing children
         while (marker.firstChild) {
@@ -92,5 +116,17 @@ export const Marker3D: React.FC<Marker3DProps> = ({
     };
   }, [maps3d, map3DElement, markerElementReady]);
 
-  return null;
+  return (
+    <>
+      {/* Render anchor line if marker is elevated and showAnchorLine is true */}
+      {elevated && showAnchorLine && (
+        <Polygon3D
+          outerCoordinates={getAnchorLineCoordinates()}
+          strokeColor="white"
+          extruded={true}
+          zIndex={1}
+        />
+      )}
+    </>
+  );
 };

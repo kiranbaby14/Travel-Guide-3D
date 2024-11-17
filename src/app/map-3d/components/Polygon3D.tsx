@@ -13,15 +13,17 @@ export interface Polygon3DProps {
   strokeColor?: string;
   strokeWidth?: number;
   extruded?: boolean;
+  zIndex?: number;
   onClick?: () => void;
 }
 
 export const Polygon3D: React.FC<Polygon3DProps> = ({
   outerCoordinates,
-  altitudeMode = "RELATIVE_TO_GROUND",
+  altitudeMode = "RELATIVE_TO_MESH",
   fillColor = "rgba(66, 133, 244, 0.45)",
   strokeColor = "rgba(25, 103, 210, 0.8)",
   strokeWidth = 1.5,
+  zIndex = 0,
   extruded = true,
   onClick,
 }) => {
@@ -62,6 +64,7 @@ export const Polygon3D: React.FC<Polygon3DProps> = ({
       polygon.strokeColor = strokeColor;
       polygon.strokeWidth = strokeWidth;
       polygon.extruded = extruded;
+      polygon.zIndex = zIndex;
 
       // Append to map if not already added
       if (!polygon.parentElement) {
