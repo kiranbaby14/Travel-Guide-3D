@@ -95,7 +95,7 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
     setAnnouncement("");
     setTimeout(() => {
       setSelectedPOI(null);
-    }, 3000);
+    }, 2000);
   }, []);
 
   const speakAnnouncement = useCallback(
@@ -146,7 +146,7 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
       // Calculate focus duration based on message length + extra time for clearing
       const wordCount = message.split(" ").length;
       const estimatedSpeechDuration = (wordCount / 100) * 60 * 1000; // ~100 words per minute
-      const totalFocusDuration = estimatedSpeechDuration + 1000; // Add 2 seconds after speech
+      const totalFocusDuration = estimatedSpeechDuration + 200; // Add few seconds after speech
 
       // Focus camera on POI
       focusOnPOI(nearbyPOI.location, totalFocusDuration);
