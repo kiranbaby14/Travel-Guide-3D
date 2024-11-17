@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Map3DCameraProps } from "../Map3D";
+import type { Map3DCameraProps } from "@/types";
 import { calculateDuration, calculatePathLength } from "@/lib/routeUtils";
 
 interface AnimationConfig {
@@ -127,8 +127,6 @@ export const useCameraAnimation = (
 
   const focusOnPOI = useCallback(
     (target: google.maps.LatLngLiteral, focusDuration: number = 3000) => {
-      console.log(isAnimating);
-
       if (!isAnimating) return;
 
       // Store the current pause state before POI focus

@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, Fragment } from "react";
 import { useRoutePointsOfInterest } from "@/hooks";
 import { Polygon3D } from "./Polygon3D";
 import { Accessibility, Clock, Star } from "lucide-react";
 import { RouteData, PointOfInterest } from "@/types";
+import { ElevatedMarker3D } from "./ElevatedMarker3D";
 
 interface RouteNarratorProps {
   currentPosition: google.maps.LatLngLiteral;
@@ -168,16 +169,27 @@ const RouteNarrator: React.FC<RouteNarratorProps> = ({
   return (
     <>
       {pointsOfInterest.map((poi, index) => (
-        <Polygon3D
-          key={`${poi.id}-${index}`}
-          outerCoordinates={createPolygonCoordinates(poi.location)}
-          onClick={() => {
-            setSelectedPOI(poi);
-            const message = `Point of Interest: ${poi.name}`;
-            setAnnouncement(message);
-            speakAnnouncement(message);
-          }}
-        />
+        <Fragment key={`${poi.id}-${index}`}>
+          <Polygon3D
+            outerCoordinates={createPolygonCoordinates(poi.location)}
+            onClick={() => {
+              setSelectedPOI(poi);
+              const message = `Point of Interest: ${poi.name}`;
+              setAnnouncement(message);
+              speakAnnouncement(message);
+            }}
+          />
+          <ElevatedMarker3D
+            position={poi.location}
+            title={poi.name}
+            color="#9C27B0"
+            altitude={150} // Height in meters
+            scale={1.2} // Marker size
+            glyph="★" // Optional symbol
+            showAnchorLine={true} // Show/hide the vertical line
+            anchorLineWidth={2} // Line thickness
+          />
+        </Fragment>
       ))}
 
       {/* POI Detail Card */}

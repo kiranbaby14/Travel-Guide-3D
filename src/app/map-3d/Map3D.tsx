@@ -5,22 +5,14 @@ import React, {
   useImperativeHandle,
   useState,
 } from "react";
-import { useMap3DCameraEvents } from "./hooks/useMap3DCameraEvents";
+import { useMap3DCameraEvents } from "../../hooks/useMap3DCameraEvents";
 import { useDeepCompareEffect } from "../../hooks/utilityHooks";
-import "./types/map3dTypes";
 import {
   Map3DClickEvent,
   useMap3DClickEvents,
-} from "./hooks/useMap3DClickEvents";
+} from "../../hooks/useMap3DClickEvents";
 import { useMap3D } from "@/context/Map3DContext";
-
-export type Map3DCameraProps = {
-  center: google.maps.LatLngAltitudeLiteral;
-  range?: number;
-  heading?: number;
-  tilt?: number;
-  roll?: number;
-};
+import { Map3DCameraProps } from "@/types";
 
 export type Map3DProps = google.maps.maps3d.Map3DElementOptions & {
   onCameraChange?: (cameraProps: Map3DCameraProps) => void;

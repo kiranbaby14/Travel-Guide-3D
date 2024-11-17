@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from "react";
-import { Location } from "./types";
+import { NamedLocation } from "@/types";
 
 interface PlaceInputProps {
   placeholder: string;
-  onPlaceSelect: (location: Location) => void;
+  onPlaceSelect: (location: NamedLocation) => void;
   placesLibrary: google.maps.PlacesLibrary;
   map3DElement: google.maps.maps3d.Map3DElement;
   disabled?: boolean;
+  clearInputOnSelect?: boolean;
 }
 
 const PlaceInput: React.FC<PlaceInputProps> = React.memo(
@@ -16,6 +17,7 @@ const PlaceInput: React.FC<PlaceInputProps> = React.memo(
     placesLibrary,
     map3DElement,
     disabled = false,
+    clearInputOnSelect = false,
   }) => {
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -31,10 +33,15 @@ const PlaceInput: React.FC<PlaceInputProps> = React.memo(
       const handlePlaceChanged = () => {
         const place = autocomplete.getPlace();
         if (place.geometry?.location) {
-          const location: Location = {
+          const location: NamedLocation = {
             lat: place.geometry.location.lat(),
             lng: place.geometry.location.lng(),
+            name: place.name || place.formatted_address,
           };
+
+          if (clearInputOnSelect) {
+            inputRef.current!.value = "";
+          }
           onPlaceSelect(location);
         }
       };
@@ -58,4 +65,5 @@ const PlaceInput: React.FC<PlaceInputProps> = React.memo(
 );
 
 PlaceInput.displayName = "PlaceInput";
+
 export default PlaceInput;

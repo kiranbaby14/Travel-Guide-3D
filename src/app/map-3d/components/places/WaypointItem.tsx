@@ -1,6 +1,6 @@
 import React from "react";
-import { Waypoint } from "./types";
 import { X } from "lucide-react";
+import { Waypoint } from "@/types";
 
 interface WaypointItemProps {
   waypoint: Waypoint;
@@ -13,8 +13,7 @@ const WaypointItem: React.FC<WaypointItemProps> = React.memo(
   ({ waypoint, index, onRemove, disabled = false }) => (
     <div className="text-sm flex justify-between items-center">
       <span>
-        Stop {index + 1}: ({waypoint.location.lat.toFixed(4)},{" "}
-        {waypoint.location.lng.toFixed(4)})
+        Stop {index + 1}: {waypoint.name}
       </span>
       <button
         onClick={() => onRemove(waypoint.id)}

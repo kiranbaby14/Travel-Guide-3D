@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMap3D } from "@/context/Map3DContext";
 import { useMapsLibrary } from "@vis.gl/react-google-maps";
+import { Polygon3D } from "./Polygon3D";
 
-export interface Marker3DProps {
+export interface ElevatedMarker3DProps {
   position: google.maps.LatLngLiteral;
   title?: string;
   onClick?: () => void;
@@ -13,21 +14,37 @@ export interface Marker3DProps {
     | "RELATIVE_TO_MESH";
   altitude?: number;
   color?: string;
+  scale?: number;
+  glyph?: string;
+  showAnchorLine?: boolean;
+  anchorLineWidth?: number;
 }
 
-export const Marker3D: React.FC<Marker3DProps> = ({
+export const ElevatedMarker3D: React.FC<ElevatedMarker3DProps> = ({
   position,
   title,
   onClick,
   altitudeMode = "RELATIVE_TO_MESH",
-  altitude = 0,
+  altitude = 100, // Default higher altitude
   color = "#EA4335",
+  scale = 1,
+  glyph,
+  showAnchorLine = true,
+  anchorLineWidth = 2,
 }) => {
   const { map3DElement, maps3d } = useMap3D();
   const markerLib = useMapsLibrary("marker");
   const markerRef =
     useRef<google.maps.maps3d.Marker3DInteractiveElement | null>(null);
   const [markerElementReady, setMarkerElementReady] = useState(false);
+
+  // Create anchor line coordinates
+  const getAnchorLineCoordinates = (): google.maps.LatLngAltitudeLiteral[] => {
+    return [
+      { ...position, altitude: altitude }, // Top point (marker position)
+      { ...position, altitude: 0 }, // Ground point
+    ];
+  };
 
   // Handle marker element initialization
   useEffect(() => {
@@ -56,23 +73,24 @@ export const Marker3D: React.FC<Marker3DProps> = ({
         ...position,
         altitude: altitude,
       };
+
       if (title) {
         marker.title = title;
       }
 
-      if (color) {
-        const pin = new markerLib.PinElement({
-          background: color,
-          glyphColor: "white",
-          borderColor: "#f6f7f6",
-        });
-        // Clear existing children
-        while (marker.firstChild) {
-          marker.removeChild(marker.firstChild);
-        }
-        marker.append(pin);
+      const pin = new markerLib.PinElement({
+        background: color,
+        borderColor: "#ffffff",
+        glyphColor: "#ffffff",
+        scale: scale,
+        glyph: glyph,
+      });
+
+      while (marker.firstChild) {
+        marker.removeChild(marker.firstChild);
       }
 
+      marker.append(pin);
       marker.altitudeMode = maps3d.AltitudeMode[altitudeMode];
 
       if (!marker.parentElement) {
@@ -90,7 +108,30 @@ export const Marker3D: React.FC<Marker3DProps> = ({
         markerRef.current.remove();
       }
     };
-  }, [maps3d, map3DElement, markerElementReady]);
+  }, [
+    maps3d,
+    map3DElement,
+    markerElementReady,
+    markerLib,
+    position,
+    title,
+    color,
+    scale,
+    glyph,
+    altitude,
+    altitudeMode,
+  ]);
 
-  return null;
+  return (
+    <>
+      {/* Render anchor line if enabled */}
+      {showAnchorLine && (
+        <Polygon3D
+          outerCoordinates={getAnchorLineCoordinates()}
+          fillColor="transparent"
+          strokeColor={color}
+        />
+      )}
+    </>
+  );
 };

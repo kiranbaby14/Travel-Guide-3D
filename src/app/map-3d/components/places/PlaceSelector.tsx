@@ -4,10 +4,10 @@ import { useMapsLibrary } from "@vis.gl/react-google-maps";
 import { useMap3D } from "@/context/Map3DContext";
 import PlaceInput from "./PlaceInput";
 import WaypointItem from "./WaypointItem";
-import { Location } from "./types";
 import { useRoute } from "@/context/RouteContext";
 import { Lock, MapPin } from "lucide-react";
 import TravelModeSelector from "./TravelModeSelector";
+import { NamedLocation } from "@/types";
 
 interface PlaceSelectorProps {
   isTourActive?: boolean;
@@ -32,7 +32,7 @@ const PlaceSelector: React.FC<PlaceSelectorProps> = ({
   } = useRoute();
 
   const handlePlaceSelect = async (
-    location: Location,
+    location: NamedLocation,
     type: "origin" | "destination" | "waypoint",
   ) => {
     map3DElement!.flyCameraTo({
@@ -129,6 +129,7 @@ const PlaceSelector: React.FC<PlaceSelectorProps> = ({
               placesLibrary={placesLibrary}
               map3DElement={map3DElement}
               disabled={isTourActive}
+              clearInputOnSelect
             />
           </div>
         </div>

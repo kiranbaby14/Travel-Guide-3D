@@ -1,9 +1,9 @@
-import { Map3DCameraProps } from "../map-3d";
 import { destination, getCoords, point } from "@turf/turf";
+import { Map3DCameraProps } from "@/types";
 
-export function estimateCameraPosition(
+const estimateCameraPosition = (
   camera3dProps: Map3DCameraProps,
-): google.maps.LatLngAltitudeLiteral {
+): google.maps.LatLngAltitudeLiteral => {
   const { center, heading, tilt, range } = camera3dProps;
 
   const tiltRad = (tilt / 180) * Math.PI;
@@ -21,4 +21,6 @@ export function estimateCameraPosition(
     lng: lng as number,
     altitude: center.altitude + height,
   };
-}
+};
+
+export { estimateCameraPosition };

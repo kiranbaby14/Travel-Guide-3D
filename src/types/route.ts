@@ -47,4 +47,26 @@ interface PointOfInterest {
   insights: PlaceInsights;
 }
 
-export type { RouteData, PlaceInsights, PointOfInterest };
+interface Location {
+  lat: number;
+  lng: number;
+}
+
+interface NamedLocation extends Location {
+  name: string;
+}
+
+type Waypoint = {
+  id: string;
+  location: Location;
+  name: string;
+};
+
+export type {
+  RouteData,
+  PlaceInsights,
+  PointOfInterest,
+  Location,
+  NamedLocation,
+  Waypoint,
+};

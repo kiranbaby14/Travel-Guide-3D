@@ -1,12 +1,10 @@
 import React, { useMemo } from "react";
 import { Map, MapMouseEvent, useMap } from "@vis.gl/react-google-maps";
-
 import { useDebouncedEffect } from "../../hooks/utilityHooks";
-import { estimateCameraPosition } from "./estimateCameraPosition";
+import { estimateCameraPosition } from "@/lib/minimapUtils";
 import { CameraPositionMarker } from "./CameraPositionMarker";
 import { ViewCenterMarker } from "./ViewCenterMarker";
-
-import type { Map3DCameraProps } from "../map-3d";
+import { Map3DCameraProps } from "@/types";
 import { useRoute } from "@/context/RouteContext";
 import { RouteDisplay2D } from "./components";
 
@@ -24,18 +22,6 @@ const MiniMap: React.FC<MiniMapProps> = ({ camera3dProps, onMapClick }) => {
     [camera3dProps],
   );
 
-  const routePolyline = useMemo(() => {
-    if (!routeData?.overview_path) return null;
-
-    return new google.maps.Polyline({
-      path: routeData.overview_path,
-      geodesic: true,
-      strokeColor: "#0062ff",
-      strokeOpacity: 1.0,
-      strokeWeight: 2,
-    });
-  }, [routeData]);
-
   useDebouncedEffect(
     () => {
       if (!minimap) return;
@@ -51,18 +37,6 @@ const MiniMap: React.FC<MiniMapProps> = ({ camera3dProps, onMapClick }) => {
 
       minimap.fitBounds(bounds, 120);
       minimap.setZoom(maxZoom);
-
-      // Attach polyline to map
-      if (routePolyline) {
-        routePolyline.setMap(minimap);
-      }
-
-      // Cleanup function
-      return () => {
-        if (routePolyline) {
-          routePolyline.setMap(null);
-        }
-      };
     },
     200,
     [minimap, camera3dProps.center, camera3dProps.range, cameraPosition],

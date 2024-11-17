@@ -6,17 +6,12 @@ import {
   useMapsLibrary,
 } from "@vis.gl/react-google-maps";
 import { MiniMap } from "./minimap";
-import {
-  Map3D,
-  Map3DCameraProps,
-  PlaceSelector,
-  RouteDisplay3D,
-  TourControls,
-  useCameraAnimation,
-} from "./map-3d";
+import { Map3D, PlaceSelector, RouteDisplay3D, TourControls } from "./map-3d";
 import { Map3DProvider, useMap3D } from "@/context/Map3DContext";
 import { RouteProvider, useRoute } from "@/context/RouteContext";
 import { RouteNarrator } from "./map-3d/components/RouteNarrator ";
+import { Map3DCameraProps } from "@/types";
+import { useCameraAnimation } from "@/hooks";
 
 const API_KEY =
   globalThis.GOOGLE_MAPS_API_KEY ??

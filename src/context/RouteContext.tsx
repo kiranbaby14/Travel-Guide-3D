@@ -6,20 +6,11 @@ import React, {
   useEffect,
 } from "react";
 import { useRouteCalculation } from "@/hooks";
-
-type LatLngLiteral = {
-  lat: number;
-  lng: number;
-};
-
-type Waypoint = {
-  id: string;
-  location: LatLngLiteral;
-};
+import { Location, NamedLocation, Waypoint } from "@/types";
 
 interface RouteState {
-  origin: LatLngLiteral | null;
-  destination: LatLngLiteral | null;
+  origin: Location | null;
+  destination: Location | null;
   waypoints: Waypoint[];
   routeData: any | null;
   isCalculating: boolean;
@@ -27,9 +18,9 @@ interface RouteState {
 }
 
 interface RouteContextType extends RouteState {
-  setOrigin: (location: LatLngLiteral | null) => void;
-  setDestination: (location: LatLngLiteral | null) => void;
-  addWaypoint: (location: LatLngLiteral) => void;
+  setOrigin: (location: Location | null) => void;
+  setDestination: (location: Location | null) => void;
+  addWaypoint: (location: NamedLocation) => void;
   removeWaypoint: (id: string) => void;
   clearWaypoints: () => void;
   setTravelMode: (mode: google.maps.TravelMode) => void;
@@ -40,17 +31,18 @@ const RouteContext = createContext<RouteContextType | null>(null);
 export const RouteProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [origin, setOrigin] = useState<LatLngLiteral | null>(null);
-  const [destination, setDestination] = useState<LatLngLiteral | null>(null);
+  const [origin, setOrigin] = useState<Location | null>(null);
+  const [destination, setDestination] = useState<Location | null>(null);
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [routeData, setRouteData] = useState<any | null>(null);
   const { calculateRoute, isCalculating } = useRouteCalculation();
   const [travelMode, setTravelMode] = useState<google.maps.TravelMode>();
 
-  const addWaypoint = useCallback((location: LatLngLiteral) => {
+  const addWaypoint = useCallback((location: NamedLocation) => {
     const newWaypoint = {
       id: crypto.randomUUID(),
       location,
+      name: location.name,
     };
     setWaypoints((prev) => [...prev, newWaypoint]);
   }, []);
