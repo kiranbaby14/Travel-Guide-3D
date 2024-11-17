@@ -12,18 +12,11 @@ import { RouteProvider, useRoute } from "@/context/RouteContext";
 import { RouteNarrator } from "./map-3d/components/RouteNarrator ";
 import { Map3DCameraProps } from "@/types";
 import { useCameraAnimation } from "@/hooks";
+import { INITIAL_VIEW_PROPS } from "@/lib/constants";
 
 const API_KEY =
   globalThis.GOOGLE_MAPS_API_KEY ??
   (process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string);
-
-const INITIAL_VIEW_PROPS = {
-  center: { lat: 51.5072, lng: 0.1276, altitude: 1300 },
-  range: 5000,
-  heading: 61,
-  tilt: 69,
-  roll: 0,
-};
 
 const Map3DExample = () => {
   const placesLibrary = useMapsLibrary("places");
