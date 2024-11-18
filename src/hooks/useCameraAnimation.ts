@@ -97,13 +97,19 @@ export const useCameraAnimation = (
   const togglePause = useCallback(() => {
     setIsPaused((current) => {
       const newPausedState = !current;
-      isPausedRef.current = newPausedState;
-
-      if (newPausedState) {
-        pauseState.current.pauseTime = performance.now();
-      } else {
-        pauseState.current.totalPausedTime +=
-          performance.now() - pauseState.current.pauseTime;
+      // Only process the state change if isPausedRef is different
+      // This prevents double processing in Strict Mode which causes issue to "performance.now()" being added twice
+      if (isPausedRef.current !== newPausedState) {
+        isPausedRef.current = newPausedState;
+        const currentTime = performance.now();
+        if (newPausedState) {
+          // Starting a pause
+          pauseState.current.pauseTime = currentTime;
+        } else {
+          // Resuming
+          pauseState.current.totalPausedTime +=
+            currentTime - pauseState.current.pauseTime;
+        }
       }
       return newPausedState;
     });
@@ -353,6 +359,7 @@ export const useCameraAnimation = (
         currentTime -
         pauseState.current.startTime -
         pauseState.current.totalPausedTime;
+
       const progress = Math.min(Math.max(elapsed / duration, 0), 1);
 
       if (progress < 1) {

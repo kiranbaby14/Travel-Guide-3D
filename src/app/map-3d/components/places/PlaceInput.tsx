@@ -36,7 +36,7 @@ const PlaceInput: React.FC<PlaceInputProps> = React.memo(
           const location: NamedLocation = {
             lat: place.geometry.location.lat(),
             lng: place.geometry.location.lng(),
-            name: place.name || place.formatted_address,
+            name: place.name! || place.formatted_address!,
           };
 
           if (clearInputOnSelect) {
