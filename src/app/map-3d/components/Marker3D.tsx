@@ -32,7 +32,7 @@ export const Marker3D: React.FC<Marker3DProps> = ({
   scale = 1,
   glyph,
   showAnchorLine = true,
-  anchorLineWidth = 2,
+  // anchorLineWidth = 2,
 }) => {
   const { map3DElement, maps3d } = useMap3D();
   const markerLib = useMapsLibrary("marker");
@@ -74,6 +74,8 @@ export const Marker3D: React.FC<Marker3DProps> = ({
       }
 
       const marker = markerRef.current;
+      if (!marker) return; // Early return if marker is somehow null
+
       marker.position = {
         ...position,
         altitude: altitude,

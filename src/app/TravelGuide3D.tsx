@@ -37,7 +37,9 @@ const Map3DExample = () => {
 
   const placesService = useMemo(() => {
     if (placesLibrary && map3DElement) {
-      return new placesLibrary.PlacesService(map3DElement);
+      return new placesLibrary.PlacesService(
+        map3DElement as unknown as HTMLDivElement,
+      );
     }
     return null;
   }, [placesLibrary, map3DElement]);

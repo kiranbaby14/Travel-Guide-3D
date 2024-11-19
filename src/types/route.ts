@@ -9,19 +9,8 @@ interface RouteData {
 interface PlaceInsights {
   formattedAddress: string;
   regularOpeningHours?: {
-    openNow: boolean;
-    periods: {
-      open: {
-        day: number;
-        hour: number;
-        minute: number;
-      };
-      close: {
-        day: number;
-        hour: number;
-        minute: number;
-      };
-    }[];
+    openNow?: boolean;
+    periods: google.maps.places.OpeningHoursPeriod[];
     weekdayDescriptions: string[];
   };
   editorialSummary?: {
@@ -39,12 +28,24 @@ interface PlaceInsights {
   };
 }
 
+interface RouteState {
+  origin: Location | null;
+  destination: Location | null;
+  waypoints: Waypoint[];
+  routeData: RouteData | null;
+  isCalculating: boolean;
+  travelMode: google.maps.TravelMode;
+}
+
 interface PointOfInterest {
   id: string;
   name: string;
   location: google.maps.LatLngLiteral;
   distanceAlongRoute: number;
   insights: PlaceInsights;
+  distanceFromRoute: number;
+  rating?: number;
+  placeType: string;
 }
 
 interface Location {
@@ -69,4 +70,5 @@ export type {
   Location,
   NamedLocation,
   Waypoint,
+  RouteState,
 };

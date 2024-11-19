@@ -6,12 +6,12 @@ const estimateCameraPosition = (
 ): google.maps.LatLngAltitudeLiteral => {
   const { center, heading, tilt, range } = camera3dProps;
 
-  const tiltRad = (tilt / 180) * Math.PI;
-  const height = range * Math.cos(tiltRad);
-  const distance = range * Math.sin(tiltRad);
+  const tiltRad = (tilt! / 180) * Math.PI;
+  const height = range! * Math.cos(tiltRad);
+  const distance = range! * Math.sin(tiltRad);
 
   const [lng, lat] = getCoords(
-    destination(point([center.lng, center.lat]), distance, heading + 180, {
+    destination(point([center.lng, center.lat]), distance, heading! + 180, {
       units: "meters",
     }),
   );

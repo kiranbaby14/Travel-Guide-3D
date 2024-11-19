@@ -5,7 +5,7 @@ import React, { createContext, useContext, ReactNode, Ref } from "react";
 interface IMap3DContext {
   map3DElement: google.maps.maps3d.Map3DElement | null;
   map3dRef: Ref<google.maps.maps3d.Map3DElement>;
-  maps3d: any | null;
+  maps3d: typeof google.maps.maps3d | null;
 }
 
 const Map3DContext = createContext<IMap3DContext | null>({

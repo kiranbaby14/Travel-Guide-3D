@@ -91,7 +91,7 @@ export async function getPlaceInsights(
       formattedAddress: details.formattedAddress || "",
       regularOpeningHours: details.regularOpeningHours
         ? {
-            openNow: await details.isOpen(),
+            openNow: (await details.isOpen()) ?? false,
             periods: details.regularOpeningHours.periods || [],
             weekdayDescriptions:
               details.regularOpeningHours.weekdayDescriptions || [],
@@ -171,7 +171,7 @@ export async function findPlacesNearPoint(
 
           resolve(
             poisWithInsights.filter(
-              (poi): poi is PointOfInterest => poi !== null,
+              (poi): poi is NonNullable<typeof poi> => poi !== null,
             ),
           );
         } catch (error) {
@@ -226,7 +226,7 @@ export const useRoutePointsOfInterest = (
   routeData: RouteData | null,
   placesService: google.maps.places.PlacesService | null,
   minDistanceBetweenPOIs: number = 500, // Allow customizing the minimum distance
-  exclusionDistanceFromEnds: number = 200,
+  // exclusionDistanceFromEnds: number = 200,
 ) => {
   const [pointsOfInterest, setPointsOfInterest] = useState<PointOfInterest[]>(
     [],
@@ -240,15 +240,15 @@ export const useRoutePointsOfInterest = (
     const findPointsOfInterest = async () => {
       setIsLoading(true);
       setError(null);
-      const points: PointOfInterest[] = mockRouteData;
+      const points: PointOfInterest[] = mockRouteData as PointOfInterest[];
 
       try {
-        const sampledPoints = samplePathPoints(
-          routeData.routeCoordinates,
-          400,
-          exclusionDistanceFromEnds,
-        );
-        let totalDistance = 0;
+        // const sampledPoints = samplePathPoints(
+        //   routeData.routeCoordinates,
+        //   400,
+        //   exclusionDistanceFromEnds,
+        // );
+        // let totalDistance = 0;
 
         // for (const [index, point] of sampledPoints.entries()) {
         //   const nearbyPlaces = await findPlacesNearPoint(

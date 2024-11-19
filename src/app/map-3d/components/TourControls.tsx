@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { RouteData } from "@/types";
 import { Pause, Play, Square } from "lucide-react";
 
 interface TourControlsProps {
@@ -6,7 +7,7 @@ interface TourControlsProps {
   isTourActive: boolean;
   isPoiFocused: boolean;
   isPaused: boolean;
-  routeData: any;
+  routeData: RouteData;
   onStart: () => void;
   onTogglePause: () => void;
   onStop: () => void;

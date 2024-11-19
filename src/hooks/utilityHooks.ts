@@ -35,17 +35,20 @@ export function useDebouncedEffect(
   timeout: number,
   deps: DependencyList,
 ) {
-  const timerRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
   useEffect(
     () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
-        timerRef.current = 0;
       }
 
       timerRef.current = setTimeout(() => effect(), timeout);
-      return () => clearTimeout(timerRef.current);
+      return () => {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+        }
+      };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [timeout, ...deps],

@@ -184,7 +184,6 @@ export const useCameraAnimation = (
     currentTime: number,
     currentPosition: google.maps.LatLng,
     cameraHeight: number,
-    smoothing: number,
   ) => {
     const {
       phase,
@@ -193,7 +192,6 @@ export const useCameraAnimation = (
       startTime,
       transitionDuration,
       focusDuration,
-      wasPathPaused,
     } = poiFocusRef.current;
     const elapsed = currentTime - startTime;
 
@@ -357,7 +355,7 @@ export const useCameraAnimation = (
       if (
         poiFocusRef.current.isActive &&
         poiFocusRef.current.target &&
-        handlePoiFocus(currentTime, currentPosition, cameraHeight, smoothing)
+        handlePoiFocus(currentTime, currentPosition, cameraHeight)
       ) {
         animationRef.current = requestAnimationFrame(animate);
         return;

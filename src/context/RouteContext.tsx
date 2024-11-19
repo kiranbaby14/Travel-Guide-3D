@@ -6,15 +6,15 @@ import React, {
   useEffect,
 } from "react";
 import { useRouteCalculation } from "@/hooks";
-import { Location, NamedLocation, Waypoint } from "@/types";
+import { Location, NamedLocation, RouteData, Waypoint } from "@/types";
 
 interface RouteState {
   origin: Location | null;
   destination: Location | null;
   waypoints: Waypoint[];
-  routeData: any | null;
+  routeData: RouteData | null;
   isCalculating: boolean;
-  travelMode?: google.maps.TravelMode;
+  travelMode: google.maps.TravelMode;
 }
 
 interface RouteContextType extends RouteState {
@@ -34,9 +34,11 @@ export const RouteProvider: React.FC<{ children: React.ReactNode }> = ({
   const [origin, setOrigin] = useState<Location | null>(null);
   const [destination, setDestination] = useState<Location | null>(null);
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
-  const [routeData, setRouteData] = useState<any | null>(null);
+  const [routeData, setRouteData] = useState<RouteData | null>(null);
   const { calculateRoute, isCalculating } = useRouteCalculation();
-  const [travelMode, setTravelMode] = useState<google.maps.TravelMode>();
+  const [travelMode, setTravelMode] = useState<google.maps.TravelMode>(
+    "DRIVING" as google.maps.TravelMode,
+  );
 
   const addWaypoint = useCallback((location: NamedLocation) => {
     const newWaypoint = {

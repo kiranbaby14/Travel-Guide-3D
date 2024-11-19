@@ -60,13 +60,15 @@ export const Map3D = forwardRef(
       <gmp-map-3d
         ref={map3dRef}
         center={center as object}
-        range={props.range as number}
-        heading={props.heading as number}
-        tilt={props.tilt as number}
-        roll={props.roll as number}
+        range={range as number}
+        heading={heading as number}
+        tilt={tilt as number}
+        roll={roll as number}
       >
         {children}
       </gmp-map-3d>
     );
   },
 );
+
+Map3D.displayName = "Map3D";

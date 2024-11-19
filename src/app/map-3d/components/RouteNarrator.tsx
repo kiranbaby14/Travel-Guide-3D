@@ -6,7 +6,7 @@ import { RouteData, PointOfInterest } from "@/types";
 import { Marker3D } from "./Marker3D";
 
 interface RouteNarratorProps {
-  currentPosition: google.maps.LatLngLiteral;
+  currentPosition: google.maps.LatLngLiteral | google.maps.LatLng;
   routeData: RouteData;
   placesService: google.maps.places.PlacesService;
   onLoadComplete: () => void;
