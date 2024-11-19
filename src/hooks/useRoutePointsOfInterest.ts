@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { RouteData, PlaceInsights, PointOfInterest } from "@/types";
-import { mockRouteData } from "./data";
+import { calculatePathLength } from "@/lib/routeUtils";
 
 // lib/routeUtils.ts
 export function samplePathPoints(
@@ -10,17 +10,9 @@ export function samplePathPoints(
 ): google.maps.LatLngLiteral[] {
   const sampledPoints: google.maps.LatLngLiteral[] = [];
   let distanceAccumulator = 0;
-  let totalRouteDistance = 0;
-
-  // Calculate total route distance
-  for (let i = 0; i < coordinates.length - 1; i++) {
-    const start = coordinates[i];
-    const end = coordinates[i + 1];
-    totalRouteDistance += google.maps.geometry.spherical.computeDistanceBetween(
-      new google.maps.LatLng(start),
-      new google.maps.LatLng(end),
-    );
-  }
+  // Convert to LatLng array for helper function
+  const path = coordinates.map((coord) => new google.maps.LatLng(coord));
+  const totalRouteDistance = calculatePathLength(path);
 
   for (let i = 0; i < coordinates.length - 1; i++) {
     const start = coordinates[i];
@@ -91,7 +83,7 @@ export async function getPlaceInsights(
       formattedAddress: details.formattedAddress || "",
       regularOpeningHours: details.regularOpeningHours
         ? {
-            openNow: (await details.isOpen()) ?? false,
+            openNow: await details.isOpen(),
             periods: details.regularOpeningHours.periods || [],
             weekdayDescriptions:
               details.regularOpeningHours.weekdayDescriptions || [],
@@ -127,7 +119,7 @@ export async function findPlacesNearPoint(
   return new Promise<PointOfInterest[]>((resolve) => {
     const request: google.maps.places.PlaceSearchRequest = {
       location: new google.maps.LatLng(point),
-      radius: 500,
+      radius: 400,
       type: "tourist_attraction",
       rankBy: google.maps.places.RankBy.PROMINENCE,
     };
@@ -148,7 +140,7 @@ export async function findPlacesNearPoint(
                   new google.maps.LatLng(placeLocation),
                 );
 
-              if (distanceFromPoint <= 500) {
+              if (distanceFromPoint <= 300) {
                 const insights = await getPlaceInsights(
                   placesService,
                   place.place_id!,
@@ -226,7 +218,7 @@ export const useRoutePointsOfInterest = (
   routeData: RouteData | null,
   placesService: google.maps.places.PlacesService | null,
   minDistanceBetweenPOIs: number = 500, // Allow customizing the minimum distance
-  // exclusionDistanceFromEnds: number = 200,
+  exclusionDistanceFromEnds: number = 200,
 ) => {
   const [pointsOfInterest, setPointsOfInterest] = useState<PointOfInterest[]>(
     [],
@@ -240,34 +232,34 @@ export const useRoutePointsOfInterest = (
     const findPointsOfInterest = async () => {
       setIsLoading(true);
       setError(null);
-      const points: PointOfInterest[] = mockRouteData as PointOfInterest[];
+      const points: PointOfInterest[] = [];
 
       try {
-        // const sampledPoints = samplePathPoints(
-        //   routeData.routeCoordinates,
-        //   400,
-        //   exclusionDistanceFromEnds,
-        // );
-        // let totalDistance = 0;
+        const sampledPoints = samplePathPoints(
+          routeData.routeCoordinates,
+          600,
+          exclusionDistanceFromEnds,
+        );
+        let totalDistance = 0;
 
-        // for (const [index, point] of sampledPoints.entries()) {
-        //   const nearbyPlaces = await findPlacesNearPoint(
-        //     placesService,
-        //     point,
-        //     totalDistance,
-        //   );
+        for (const [index, point] of sampledPoints.entries()) {
+          const nearbyPlaces = await findPlacesNearPoint(
+            placesService,
+            point,
+            totalDistance,
+          );
 
-        //   points.push(...nearbyPlaces);
+          points.push(...nearbyPlaces);
 
-        //   if (index < sampledPoints.length - 1) {
-        //     const nextPoint = sampledPoints[index + 1];
-        //     totalDistance +=
-        //       google.maps.geometry.spherical.computeDistanceBetween(
-        //         new google.maps.LatLng(point),
-        //         new google.maps.LatLng(nextPoint),
-        //       );
-        //   }
-        // }
+          if (index < sampledPoints.length - 1) {
+            const nextPoint = sampledPoints[index + 1];
+            totalDistance +=
+              google.maps.geometry.spherical.computeDistanceBetween(
+                new google.maps.LatLng(point),
+                new google.maps.LatLng(nextPoint),
+              );
+          }
+        }
 
         // Use the new spacing function instead of simple deduplication
         const spacedPoints = selectSpacedPoints(points, minDistanceBetweenPOIs);
