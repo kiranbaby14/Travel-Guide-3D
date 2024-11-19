@@ -1,18 +1,33 @@
 import { useEffect, useState } from "react";
-import { RouteData, PlaceInsights, PointOfInterest } from "@/types";
 import { calculatePathLength } from "@/lib/routeUtils";
+import { PlaceInsights, PointOfInterest, RouteData } from "@/types";
 
-// lib/routeUtils.ts
-export function samplePathPoints(
+// Constants for distance parameters
+const DISTANCES = {
+  EXCLUSION_FROM_ENDS: 500, // meters from start/end points
+  SAMPLE_INTERVAL: 600, // meters between sampling points
+  SEARCH_RADIUS: 250, // meters for nearby search
+  FILTER_RADIUS: 200, // meters for filtering POIs
+  MIN_POI_SPACING: 600, // minimum meters between POIs
+} as const;
+
+interface POIScore {
+  point: PointOfInterest;
+  score: number;
+}
+
+const samplePathPoints = (
   coordinates: google.maps.LatLngLiteral[],
-  intervalMeters: number,
-  exclusionDistanceFromEnds: number = 500, // Skip points within 500 meters of start/end
-): google.maps.LatLngLiteral[] {
+  intervalMeters: number = DISTANCES.SAMPLE_INTERVAL,
+  exclusionDistanceFromEnds: number = DISTANCES.EXCLUSION_FROM_ENDS,
+): google.maps.LatLngLiteral[] => {
   const sampledPoints: google.maps.LatLngLiteral[] = [];
   let distanceAccumulator = 0;
-  // Convert to LatLng array for helper function
   const path = coordinates.map((coord) => new google.maps.LatLng(coord));
   const totalRouteDistance = calculatePathLength(path);
+
+  // Track last added point for minimum spacing
+  let lastAddedPoint: google.maps.LatLngLiteral | null = null;
 
   for (let i = 0; i < coordinates.length - 1; i++) {
     const start = coordinates[i];
@@ -40,12 +55,21 @@ export function samplePathPoints(
           new google.maps.LatLng(interpolated),
         );
 
-      // Skip points near start and end
-      if (
+      // Check if point is within valid range and maintains minimum spacing
+      const isValidDistance =
         distanceAlongRoute > exclusionDistanceFromEnds &&
-        distanceAlongRoute < totalRouteDistance - exclusionDistanceFromEnds
-      ) {
+        distanceAlongRoute < totalRouteDistance - exclusionDistanceFromEnds;
+
+      const maintainsMinSpacing =
+        !lastAddedPoint ||
+        google.maps.geometry.spherical.computeDistanceBetween(
+          new google.maps.LatLng(lastAddedPoint),
+          new google.maps.LatLng(interpolated),
+        ) >= DISTANCES.MIN_POI_SPACING;
+
+      if (isValidDistance && maintainsMinSpacing) {
         sampledPoints.push(interpolated);
+        lastAddedPoint = interpolated;
       }
 
       distanceAccumulator += intervalMeters;
@@ -55,12 +79,12 @@ export function samplePathPoints(
   }
 
   return sampledPoints;
-}
+};
 
-export async function getPlaceInsights(
+const getPlaceInsights = async (
   placesService: google.maps.places.PlacesService,
   placeId: string,
-): Promise<PlaceInsights> {
+): Promise<PlaceInsights> => {
   try {
     const Place = google.maps.places.Place;
     const place = new Place({ id: placeId });
@@ -109,17 +133,17 @@ export async function getPlaceInsights(
   } catch (error) {
     throw new Error(`Failed to get place insights: ${error}`);
   }
-}
+};
 
-export async function findPlacesNearPoint(
+const findPlacesNearPoint = async (
   placesService: google.maps.places.PlacesService,
   point: google.maps.LatLngLiteral,
   distanceAlongRoute: number,
-): Promise<PointOfInterest[]> {
+): Promise<PointOfInterest[]> => {
   return new Promise<PointOfInterest[]>((resolve) => {
     const request: google.maps.places.PlaceSearchRequest = {
       location: new google.maps.LatLng(point),
-      radius: 400,
+      radius: DISTANCES.SEARCH_RADIUS,
       type: "tourist_attraction",
       rankBy: google.maps.places.RankBy.PROMINENCE,
     };
@@ -140,7 +164,8 @@ export async function findPlacesNearPoint(
                   new google.maps.LatLng(placeLocation),
                 );
 
-              if (distanceFromPoint <= 300) {
+              // Only include POIs within the filter radius
+              if (distanceFromPoint <= DISTANCES.FILTER_RADIUS) {
                 const insights = await getPlaceInsights(
                   placesService,
                   place.place_id!,
@@ -175,28 +200,58 @@ export async function findPlacesNearPoint(
       }
     });
   });
-}
+};
 
-export function selectSpacedPoints(
+const calculatePOIScore = (poi: PointOfInterest): number => {
+  // Weight factors for scoring
+  const WEIGHTS = {
+    RATING: 2.0, // Prioritize higher-rated places
+    DISTANCE_FROM_ROUTE: -0.5, // Prefer closer places
+    USER_RATINGS: 0.3, // Consider number of ratings
+    EDITORIAL_SUMMARY: 0.5, // Bonus for places with descriptions
+  };
+
+  let score = 0;
+
+  // Base rating score (0-5 scale)
+  score += (poi.rating || 0) * WEIGHTS.RATING;
+
+  // Distance penalty (0-300m scale, inverted so closer is better)
+  score +=
+    ((DISTANCES.FILTER_RADIUS - (poi.distanceFromRoute || 0)) /
+      DISTANCES.FILTER_RADIUS) *
+    WEIGHTS.DISTANCE_FROM_ROUTE;
+
+  // Number of ratings bonus (log scale to prevent domination by very popular places)
+  if (poi.insights?.userRatingCount) {
+    score += Math.log10(poi.insights.userRatingCount) * WEIGHTS.USER_RATINGS;
+  }
+
+  // Bonus for places with editorial descriptions
+  if (poi.insights?.editorialSummary?.text) {
+    score += WEIGHTS.EDITORIAL_SUMMARY;
+  }
+
+  return score;
+};
+
+const selectSpacedPoints = (
   points: PointOfInterest[],
-  minDistanceMeters: number = 300,
-): PointOfInterest[] {
-  // Sort by rating and distance from route to prioritize better-rated places
-  const sortedPoints = [...points].sort((a, b) => {
-    // Prioritize rating first
-    const ratingDiff = (b.rating || 0) - (a.rating || 0);
-    if (Math.abs(ratingDiff) > 0.5) {
-      // Only use rating if difference is significant
-      return ratingDiff;
-    }
-    // Then consider distance from route
-    return (a.distanceFromRoute || 0) - (b.distanceFromRoute || 0);
-  });
+  minDistanceMeters: number = DISTANCES.MIN_POI_SPACING,
+): PointOfInterest[] => {
+  // Calculate scores for all points
+  const scoredPoints: POIScore[] = points.map((point) => ({
+    point,
+    score: calculatePOIScore(point),
+  }));
+
+  // Sort by score descending
+  const sortedPoints = scoredPoints.sort((a, b) => b.score - a.score);
 
   const selectedPoints: PointOfInterest[] = [];
 
-  for (const point of sortedPoints) {
-    // Check if this point is far enough from all selected points
+  for (const { point } of sortedPoints) {
+    // Check if this point maintains minimum distance from all selected points
     const isFarEnough = selectedPoints.every((selectedPoint) => {
       const distanceBetweenPoints = Math.abs(
         point.distanceAlongRoute - selectedPoint.distanceAlongRoute,
@@ -209,16 +264,17 @@ export function selectSpacedPoints(
     }
   }
 
+  // Return points sorted by distance along route
   return selectedPoints.sort(
     (a, b) => a.distanceAlongRoute - b.distanceAlongRoute,
   );
-}
+};
 
-export const useRoutePointsOfInterest = (
+const useRoutePointsOfInterest = (
   routeData: RouteData | null,
   placesService: google.maps.places.PlacesService | null,
-  minDistanceBetweenPOIs: number = 500, // Allow customizing the minimum distance
-  exclusionDistanceFromEnds: number = 200,
+  minDistanceBetweenPOIs: number = DISTANCES.MIN_POI_SPACING,
+  exclusionDistanceFromEnds: number = DISTANCES.EXCLUSION_FROM_ENDS,
 ) => {
   const [pointsOfInterest, setPointsOfInterest] = useState<PointOfInterest[]>(
     [],
@@ -237,9 +293,10 @@ export const useRoutePointsOfInterest = (
       try {
         const sampledPoints = samplePathPoints(
           routeData.routeCoordinates,
-          600,
+          DISTANCES.SAMPLE_INTERVAL,
           exclusionDistanceFromEnds,
         );
+
         let totalDistance = 0;
 
         for (const [index, point] of sampledPoints.entries()) {
@@ -261,9 +318,7 @@ export const useRoutePointsOfInterest = (
           }
         }
 
-        // Use the new spacing function instead of simple deduplication
         const spacedPoints = selectSpacedPoints(points, minDistanceBetweenPOIs);
-
         setPointsOfInterest(spacedPoints);
       } catch (error) {
         console.error("Error finding points of interest:", error);
@@ -278,3 +333,5 @@ export const useRoutePointsOfInterest = (
 
   return { pointsOfInterest, isLoading, error };
 };
+
+export { useRoutePointsOfInterest };
