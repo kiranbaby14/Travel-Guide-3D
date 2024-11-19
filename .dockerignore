@@ -1,0 +1,12 @@
+.git
+.gitignore
+.next
+.husky
+node_modules
+.pnpm-store
+README.md
+docker-compose*
+Dockerfile
+.dockerignore
+.eslintrc*
+.prettier*
