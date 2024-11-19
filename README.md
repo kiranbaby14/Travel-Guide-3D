@@ -24,6 +24,10 @@ TravelGuide3D reimagines travel route planning by combining beautiful 3D visuali
 - **Places API:** Location data and POI discovery
 - **Directions API:** Route optimization
 - **Autocomplete API:** Seamless location search
+- **Flexible Travel Modes:**
+  - 🚶 **Walking:** Perfect for city exploration and short distances
+  - 🚲 **Cycling:** Bike-friendly routes
+  - 🚗 **Driving:** Enjoy a relaxing drive with stunning views along the way
 
 ## 🚀 Features
 
@@ -32,6 +36,8 @@ TravelGuide3D reimagines travel route planning by combining beautiful 3D visuali
 - **Dynamic Points of Interest Discovery:** Automatically discover interesting locations along your route
 - **Interactive 3D Tour Controls:** Intuitive camera controls for seamless exploration
 - **Mini-Map Navigation:** Maintain spatial awareness while exploring in 3D
+- **Flexible Touring Experience:** ⏯️ Pause/Resume: Take a break and resume your tour exactly where you left off
+- **Voice-Based Narration** Engaging narratives about each location
 
 ## 🚧 Development Setup
 
