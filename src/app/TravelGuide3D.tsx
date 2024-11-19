@@ -6,10 +6,15 @@ import {
   useMapsLibrary,
 } from "@vis.gl/react-google-maps";
 import { MiniMap } from "./minimap";
-import { Map3D, PlaceSelector, RouteDisplay3D, TourControls } from "./map-3d";
+import {
+  Map3D,
+  PlaceSelector,
+  RouteDisplay3D,
+  RouteNarrator,
+  TourControls,
+} from "./map-3d";
 import { Map3DProvider, useMap3D } from "@/context/Map3DContext";
 import { RouteProvider, useRoute } from "@/context/RouteContext";
-import { RouteNarrator } from "./map-3d/components/RouteNarrator ";
 import { Map3DCameraProps } from "@/types";
 import { useCameraAnimation } from "@/hooks";
 import { INITIAL_VIEW_PROPS } from "@/lib/constants";

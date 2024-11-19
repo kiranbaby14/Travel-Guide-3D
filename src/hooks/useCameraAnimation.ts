@@ -46,10 +46,11 @@ export const useCameraAnimation = (
     target: null as google.maps.LatLngLiteral | null,
     pathState: null as AnimationState | null,
     startTime: 0,
-    pathTime: 0,
+    totalPoiFocusTime: 0,
     wasPathPaused: false, // Add this to track pause state before POI focus
     transitionDuration: 1500,
     focusDuration: 3000,
+    timeoutId: null as NodeJS.Timeout | null,
   });
 
   const pauseState = useRef({
@@ -74,10 +75,11 @@ export const useCameraAnimation = (
       target: null,
       pathState: null,
       startTime: 0,
-      pathTime: 0,
+      totalPoiFocusTime: 0,
       wasPathPaused: false,
       transitionDuration: 1500,
       focusDuration: 3000,
+      timeoutId: null,
     };
     pauseState.current = {
       pauseTime: 0,
@@ -102,6 +104,7 @@ export const useCameraAnimation = (
       if (isPausedRef.current !== newPausedState) {
         isPausedRef.current = newPausedState;
         const currentTime = performance.now();
+
         if (newPausedState) {
           // Starting a pause
           pauseState.current.pauseTime = currentTime;
@@ -135,31 +138,44 @@ export const useCameraAnimation = (
     (target: google.maps.LatLngLiteral, focusDuration: number = 3000) => {
       if (!isAnimating) return;
 
-      // Store the current pause state before POI focus
-      const wasPathPaused = isPausedRef.current;
-
-      // If the path was paused, we need to update the total paused time
-      if (wasPathPaused) {
-        pauseState.current.totalPausedTime +=
-          performance.now() - pauseState.current.pauseTime;
+      // Clear any existing timeout at function entry
+      if (poiFocusRef.current.timeoutId) {
+        clearTimeout(poiFocusRef.current.timeoutId);
       }
 
-      setIsPoiFocused(true);
+      // Only process if not already in POI focus or transitioning
+      if (!poiFocusRef.current.isActive) {
+        // Store the current pause state before POI focus
+        const wasPathPaused = isPausedRef.current;
+        const currentTime = performance.now();
 
-      poiFocusRef.current = {
-        isActive: true,
-        phase: "transitioning-to",
-        target,
-        pathState: { ...lastState.current },
-        startTime: performance.now(),
-        pathTime:
-          performance.now() -
-          pauseState.current.startTime -
-          pauseState.current.totalPausedTime,
-        wasPathPaused,
-        transitionDuration: 1500,
-        focusDuration,
-      };
+        setIsPoiFocused(true);
+
+        if (wasPathPaused) {
+          // For paused state and POI focus (user manually entering POI focus),
+          // just set a timeout to clear the POI focus
+          const timeoutId = setTimeout(() => {
+            setIsPoiFocused(false);
+            poiFocusRef.current.timeoutId = null;
+          }, focusDuration);
+
+          poiFocusRef.current.timeoutId = timeoutId;
+          return; // Return early, don't set up animation states
+        }
+
+        poiFocusRef.current = {
+          isActive: true,
+          phase: "transitioning-to",
+          target,
+          pathState: { ...lastState.current },
+          startTime: currentTime,
+          totalPoiFocusTime: poiFocusRef.current.totalPoiFocusTime,
+          wasPathPaused,
+          transitionDuration: 1500,
+          focusDuration,
+          timeoutId: null,
+        };
+      }
     },
     [isAnimating],
   );
@@ -237,22 +253,14 @@ export const useCameraAnimation = (
       if (progress >= 1) {
         if (phase === "transitioning-to") {
           poiFocusRef.current.phase = "focused";
+          poiFocusRef.current.totalPoiFocusTime += transitionDuration;
           poiFocusRef.current.startTime = currentTime;
         } else {
           setIsPoiFocused(false);
-          // Restore pause state and adjust times
-          if (wasPathPaused) {
-            isPausedRef.current = true;
-            setIsPaused(true);
-            pauseState.current.pauseTime = performance.now();
-          } else {
-            isPausedRef.current = false;
-            setIsPaused(false);
-          }
+          // Add both the focus duration and final transition time
+          poiFocusRef.current.totalPoiFocusTime +=
+            focusDuration + transitionDuration;
 
-          // Adjust start time to maintain correct path position
-          pauseState.current.startTime =
-            currentTime - poiFocusRef.current.pathTime;
           poiFocusRef.current.isActive = false;
           poiFocusRef.current.phase = null;
         }
@@ -358,7 +366,8 @@ export const useCameraAnimation = (
       const elapsed =
         currentTime -
         pauseState.current.startTime -
-        pauseState.current.totalPausedTime;
+        pauseState.current.totalPausedTime -
+        poiFocusRef.current.totalPoiFocusTime;
 
       const progress = Math.min(Math.max(elapsed / duration, 0), 1);
 
