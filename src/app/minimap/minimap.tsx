@@ -3,9 +3,7 @@ import { Map, MapMouseEvent, useMap } from "@vis.gl/react-google-maps";
 import { useDebouncedEffect } from "../../hooks/utilityHooks";
 import { estimateCameraPosition } from "@/lib/minimapUtils";
 import { CameraPositionMarker } from "./CameraPositionMarker";
-import { ViewCenterMarker } from "./ViewCenterMarker";
 import { Map3DCameraProps } from "@/types";
-import { useRoute } from "@/context/RouteContext";
 import { RouteDisplay2D } from "./components";
 
 interface MiniMapProps {
@@ -13,9 +11,11 @@ interface MiniMapProps {
   onMapClick?: (ev: MapMouseEvent) => void;
 }
 
+const DEFAULT_RANGE = 1000;
+const DEFAULT_HEADING = 0;
+
 const MiniMap: React.FC<MiniMapProps> = ({ camera3dProps, onMapClick }) => {
   const minimap = useMap("minimap");
-  const { routeData } = useRoute();
 
   const cameraPosition = useMemo(
     () => estimateCameraPosition(camera3dProps),
@@ -32,7 +32,7 @@ const MiniMap: React.FC<MiniMapProps> = ({ camera3dProps, onMapClick }) => {
 
       const maxZoom = Math.max(
         1,
-        Math.round(24 - Math.log2(camera3dProps.range)),
+        Math.round(24 - Math.log2(camera3dProps.range ?? DEFAULT_RANGE)),
       );
 
       minimap.fitBounds(bounds, 120);
@@ -56,7 +56,7 @@ const MiniMap: React.FC<MiniMapProps> = ({ camera3dProps, onMapClick }) => {
       {/* <ViewCenterMarker position={camera3dProps.center}></ViewCenterMarker> */}
       <CameraPositionMarker
         position={cameraPosition}
-        heading={camera3dProps.heading}
+        heading={camera3dProps.heading ?? DEFAULT_HEADING}
       />
       <RouteDisplay2D />
     </Map>

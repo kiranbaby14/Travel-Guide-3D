@@ -9,6 +9,7 @@ const DISTANCES = {
   SEARCH_RADIUS: 250, // meters for nearby search
   FILTER_RADIUS: 200, // meters for filtering POIs
   MIN_POI_SPACING: 600, // minimum meters between POIs
+  SHORT_ROUTE_THRESHOLD: 1000, // threshold for considering a route as "short" (1km)
 } as const;
 
 interface POIScore {
@@ -21,11 +22,18 @@ const samplePathPoints = (
   intervalMeters: number = DISTANCES.SAMPLE_INTERVAL,
   exclusionDistanceFromEnds: number = DISTANCES.EXCLUSION_FROM_ENDS,
 ): google.maps.LatLngLiteral[] => {
-  const sampledPoints: google.maps.LatLngLiteral[] = [];
-  let distanceAccumulator = 0;
   const path = coordinates.map((coord) => new google.maps.LatLng(coord));
   const totalRouteDistance = calculatePathLength(path);
 
+  // Handle short routes
+  if (totalRouteDistance < DISTANCES.SHORT_ROUTE_THRESHOLD) {
+    // For very short routes, just return the middle point
+    const midIndex = Math.floor(coordinates.length / 2);
+    return [coordinates[midIndex]];
+  }
+
+  const sampledPoints: google.maps.LatLngLiteral[] = [];
+  let distanceAccumulator = 0;
   // Track last added point for minimum spacing
   let lastAddedPoint: google.maps.LatLngLiteral | null = null;
 
