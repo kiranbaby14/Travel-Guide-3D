@@ -109,6 +109,8 @@ const DISTANCES = {
   EXCLUSION_FROM_ENDS: 500, // Distance from route ends to exclude
 };
 ```
+[View Distance Configuration Code](https://github.com/kiranbaby14/Travel-Guide-3D/blob/master/src/hooks/useRoutePointsOfInterest.ts#L6)
+
 
 #### Filtering Stages
 
@@ -135,6 +137,8 @@ const WEIGHTS = {
   EDITORIAL_SUMMARY: 0.5, // Bonus for places with descriptions
 };
 ```
+[View Scoring Weights Code](https://github.com/kiranbaby14/Travel-Guide-3D/blob/master/src/hooks/useRoutePointsOfInterest.ts#L215)
+
 
 #### Scoring Process
 
