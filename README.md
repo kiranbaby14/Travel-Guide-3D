@@ -75,6 +75,9 @@ pnpm dev
 ```
 
 The application will be available at `http://localhost:3000`
+##### ⚠️ Important Note for Windows Users
+If you encounter symlink-related errors during build (EPERM: operation not permitted, symlink), you can:
+- Remove `output: 'standalone'` from your next.config.js file
 
 ### Docker Deployment
 
