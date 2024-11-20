@@ -1,6 +1,6 @@
 # TravelGuide3D 🌍
 
-TravelGuide3D reimagines travel route planning by combining beautiful 3D visualization with practical navigation, making every journey planning as exciting as the destination itself. The platform features immersive voice-based narration that brings locations to life, with historical sites and landmarks highlighted in dynamic 3D polygons alongside captivating imagery and comprehensive summaries.
+TravelGuide3D revolutionizes travel planning with stunning 3D visualizations, immersive voice narration, and dynamic 3D polygons highlighting landmarks. It features automated camera movements that smoothly guide users from start to destination, offering cinematic transitions and breathtaking views. Journey planning has never been this exciting!
 
 ## 🎥 Demo Video
 
@@ -16,7 +16,7 @@ TravelGuide3D reimagines travel route planning by combining beautiful 3D visuali
 - **React**
 - **Shadcn**
 - **Tailwind CSS**
-- **vis.gl**
+- **Vis.gl**
 
 ### Google Maps Platform Integration
 
@@ -34,8 +34,8 @@ TravelGuide3D reimagines travel route planning by combining beautiful 3D visuali
 - **Cinematic Route Visualization:** Experience your travel routes in stunning 3D graphics
 - **Location Insights Narration:** Get rich, contextual information about places you'll visit
 - **Dynamic Points of Interest Discovery:** Automatically discover interesting locations along your route
-- **Interactive 3D Tour Controls:** Intuitive camera controls for seamless exploration
-- **Mini-Map Navigation:** Maintain spatial awareness while exploring in 3D
+- **Interactive 3D Tour:** Intuitive automated camera movements for seamless exploration
+- **Mini-Map Navigation:** Maintain spatial awareness in 2D while exploring in 3D
 - **Flexible Touring Experience:** ⏯️ Pause/Resume: Take a break and resume your tour exactly where you left off
 - **Voice-Based Narration** Engaging narratives about each location
 
@@ -85,7 +85,7 @@ The application will be available at `http://localhost:3000`
 
 ## 💪 Challenges & Solutions
 
-The main challenge was integrating 3D visualization capabilities. While vis.gl library was considered for its React-friendly approach, the Maps JavaScript API for 3D was still in development, which affected vis.gl's functionality. This required careful planning of component structure and architecture to ensure smooth operation.
+The main challenge was integrating the Maps JavaScript API for 3D into a Next.js framework. While the vis.gl library was initially considered for its React-friendly approach, the ongoing development of the Maps JavaScript API for 3D limited vis.gl's functionality. This demanded careful planning of component structure and architecture in Next.js to ensure smooth operation and seamless automatic animation capabilities within the 3D visualization.
 
 ## 🏆 Achievements
 
@@ -103,7 +103,6 @@ Exciting features planned for future releases:
 
 - Immersive marketing features (3D advertisements)
 - Weather visualization along routes
-- Performance optimization for complex 3D scenes
 
 ### Long-term Vision
 
