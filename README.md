@@ -75,8 +75,11 @@ pnpm dev
 ```
 
 The application will be available at `http://localhost:3000`
+
 ##### ⚠️ Important Note for Windows Users
+
 If you encounter symlink-related errors during build (EPERM: operation not permitted, symlink), you can:
+
 - Remove `output: 'standalone'` from your next.config.js file
 
 ### Docker Deployment
@@ -88,6 +91,63 @@ docker-compose up --build
 ```
 
 The application will be available at `http://localhost:3000`
+
+## 🎯 Points of Interest Configuration
+
+The POI discovery system uses a multi-stage filtering and ranking process to find relevant attractions along routes.
+
+### Distance Parameters
+
+These parameters affect which POIs are included in the results:
+
+```typescript
+const DISTANCES = {
+  SEARCH_RADIUS: 250, // API search radius in meters (filter for places API-nearby search)
+  FILTER_RADIUS: 200, // Secondary filter radius in meters (post-API filter)
+  SAMPLE_INTERVAL: 600, // Distance between route sampling points
+  MIN_POI_SPACING: 600, // Minimum distance between selected POIs
+  EXCLUSION_FROM_ENDS: 500, // Distance from route ends to exclude
+};
+```
+
+#### Filtering Stages
+
+1. **Pre-API Filter** (`SEARCH_RADIUS`):
+
+   - Applied during the Google Places API call
+   - Determines the initial search area
+   - Increase this value to find more POIs in each search
+
+2. **Post-API Filters**:
+   - `FILTER_RADIUS`: Secondary distance-based filtering
+   - `MIN_POI_SPACING`: Ensures POIs aren't too close together
+   - These can be adjusted after API results are received
+
+### Scoring Weights
+
+POIs are ranked using these configurable weights:
+
+```typescript
+const WEIGHTS = {
+  RATING: 2.0, // Weight for place rating (0-5 stars)
+  DISTANCE_FROM_ROUTE: -0.5, // Penalty for distance from route
+  USER_RATINGS: 0.3, // Bonus for number of user ratings
+  EDITORIAL_SUMMARY: 0.5, // Bonus for places with descriptions
+};
+```
+
+#### Scoring Process
+
+1. POIs receive a base score from their Google rating
+2. Distance penalty is applied based on how far they are from the route
+3. Bonus points for popularity (number of ratings)
+4. Additional bonus for places with editorial descriptions
+
+The weights only affect ranking order, not filtering. To increase the number of POIs:
+
+1. Increase `SEARCH_RADIUS` for more initial results
+2. Increase `FILTER_RADIUS` to keep more distant POIs
+3. Decrease `MIN_POI_SPACING` to allow POIs closer together
 
 ## 💪 Challenges & Solutions
 
