@@ -38,6 +38,9 @@ TravelGuide3D revolutionizes travel planning with stunning 3D visualizations, im
 - **Mini-Map Navigation:** Maintain spatial awareness in 2D while exploring in 3D
 - **Flexible Touring Experience:** ⏯️ Pause/Resume: Take a break and resume your tour exactly where you left off
 - **Voice-Based Narration** Engaging narratives about each location
+- **Flexible Travel Modes:** Choose between walking, cycling, or driving routes to match your travel style
+- **Smart Place Search:** Easily find and navigate to destinations, landmarks, or points of interest
+- **Interactive POI Exploration:** Zoom out and explore POIs independently during **tour pauses**, with automatic narration triggers
 
 ## 🚧 Development Setup
 
